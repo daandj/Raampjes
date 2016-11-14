@@ -1,5 +1,5 @@
-bootloader.img: bootloader.asm
-	nasm -f bin -o first_stage.img first_stage.asm
+first_stage.img: boot/first_stage.asm
+	nasm -f bin -o first_stage.img boot/first_stage.asm
 
 exports:
 	export PATH="$$PATH:$$HOME/opt/bochs/bin"
@@ -15,6 +15,8 @@ test: floppy.img
 clean:
 	-rm first_stage.img
 	-rm floppy.img
+	-rm parport.out
+	-rm bochsout.txt
 
 
 
