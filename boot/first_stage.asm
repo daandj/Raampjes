@@ -24,8 +24,8 @@ bsSerialNumber:					DD 0xa0a1a2a3
 VolumeLabel:						DB "BOOT FLOPPY"
 FileSystem:							DB "FAT16   "
 
-%include "includes/print.asm"
-%include "includes/floppy.asm"
+%include "boot/includes/print.asm"
+%include "boot/includes/floppy.asm"
 
 loader:
 	xor ax, ax
