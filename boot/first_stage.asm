@@ -35,7 +35,7 @@ loader:
 	cli
 	xor ax, ax
 	mov ss, ax
-	mov sp,	ox7c00 				; Set up stack
+	mov sp,	0x7c00 				; Set up stack
 	sti
 
 	mov si, hello_msg
