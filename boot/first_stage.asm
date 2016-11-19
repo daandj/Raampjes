@@ -1,5 +1,4 @@
 bits	16							; We are still in 16 bit Real Mode
-org		0x7c00						; We are loaded by BIOS at 0x7C00
 
 start:          jmp loader					; jump over OEM block
 
@@ -13,7 +12,7 @@ RootDirectoryEntries:		DW 512
 TotalLogicalSectors:		DW 2880
 MediaDiscriptor:				DB 0xF0
 SectorsPerFAT:					DW 9
-SectorsPerTrack:				DW 12
+SectorsPerTrack:				DW 16
 HeadsPerCylinder:				DW 2
 HiddenSectors:					DD 0
 TotalSectorsBig:				DD 0
@@ -26,24 +25,38 @@ FileSystem:							DB "FAT16   "
 
 %include "boot/includes/print.asm"
 %include "boot/includes/floppy.asm"
+%include "boot/includes/fat.asm"
 
 loader:
-	xor ax, ax
+	mov ax, 0x07c0
 	mov ds, ax
 	mov es, ax
 
-	mov si, msg
+	cli
+	xor ax, ax
+	mov ss, ax
+	mov sp,	ox7c00 				; Set up stack
+	sti
+
+	mov si, hello_msg
+	call Print
+	
+	mov si, load_fat
 	call Print
 
-	mov bx, 0x0200
-	mov ax, 2
-	mov cx, 1
-	call ReadSector
+	mov bx, 0x7e00				; The address we want to load the next bootloader at
+	call LoadFAT					; ( 0x7c00 + 0x200 ).
+
+	mov si, loaded
+	call Print
 
 	cli
 	hlt
 
-msg DB "Hello world"
+hello_msg 							db 'Hello world ', 10, 13, 0
+load_fat 								db 'Loading File Allocation Table... ', 10, 13, 0
+load_sec2								db 'Loading sector 2 from floppy', 10, 13, 0
+loaded 									db 'Loaded! ', 10, 13, 0
 
 times 510 - ($ - $$) DB 0
 DB 0x55

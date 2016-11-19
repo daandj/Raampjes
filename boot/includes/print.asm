@@ -1,9 +1,12 @@
 Print:
-	lodsb
-	or al, al
-	jz  PrintDone
+	push ax
 	mov ah, 0x0e
-	int 10h
-	jmp Print
+.repeat
+	lodsb
+	cmp al, 0
+	je PrintDone
+	int 0x10
+	jmp .repeat
 PrintDone:
+	pop ax
 	ret
