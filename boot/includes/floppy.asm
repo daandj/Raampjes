@@ -19,12 +19,13 @@ ResetFloppy:
 	jc ResetFloppy
 	ret
 
-; Set AX to the sector you want to load,
-; ES:BX to the address you want to load it at.
-ReadOneSector:
+; Set AX to the sector you want to load, CX to the amount of sectors
+; and ES:BX to the address you want to load it at.
+ReadSectors:
 	mov di, 0x05
 ReadLoop:
 	push ax
+	push cx
 	call LBAToCHS
 	mov ah, 0x02
 	mov al, 0x01
@@ -33,8 +34,16 @@ ReadLoop:
 	mov dh, byte [HeadNumber]
 	mov dl, byte [DriveNumber]
 	int 0x13
-	jnc finished
+	jc Error
+	add bx, 0x0200
+	pop cx
+	dec cx
+	jcxz finished
+	pop ax
+	jmp ReadLoop
+Error:
 	call ResetFloppy
+	pop cx
 	dec di
 	pop ax
 	jnz ReadLoop

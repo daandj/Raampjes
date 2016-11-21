@@ -8,11 +8,11 @@ BytesPerSector:					DW 512
 SectorsPerCluster:			DB 1
 ReservedSectors:				DW 1
 NumberOfFATs:						DB 2
-RootDirectoryEntries:		DW 512
+RootDirectoryEntries:		DW 224
 TotalLogicalSectors:		DW 2880
 MediaDiscriptor:				DB 0xF0
 SectorsPerFAT:					DW 9
-SectorsPerTrack:				DW 16
+SectorsPerTrack:				DW 18
 HeadsPerCylinder:				DW 2
 HiddenSectors:					DD 0
 TotalSectorsBig:				DD 0
@@ -40,9 +40,14 @@ loader:
 
 	mov si, hello_msg
 	call Print
-	
-	mov si, load_fat
+
+	mov si, load_root_dir
 	call Print
+
+	mov bx, 0x7e00
+	call LoadRootDir
+
+	call FindDirEntry
 
 	mov bx, 0x7e00				; The address we want to load the next bootloader at
 	call LoadFAT					; ( 0x7c00 + 0x200 ).
@@ -50,13 +55,15 @@ loader:
 	mov si, loaded
 	call Print
 
+	xchg bx, bx
 	cli
 	hlt
 
-hello_msg 							db 'Hello world ', 10, 13, 0
-load_fat 								db 'Loading File Allocation Table... ', 10, 13, 0
-load_sec2								db 'Loading sector 2 from floppy', 10, 13, 0
-loaded 									db 'Loaded! ', 10, 13, 0
+hello_msg 							db 'Hello world!', 10, 13, 0
+load_fat 								db 'Loading File Allocation Table...', 10, 13, 0
+load_root_dir						db 'Loading Root Directory...', 10, 13, 0
+loaded 									db 'Loaded', 10, 13, 0
+FileName								db 'stage2  bin'   
 
 times 510 - ($ - $$) DB 0
 DB 0x55
