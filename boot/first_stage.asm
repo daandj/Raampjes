@@ -47,6 +47,7 @@ loader:
 	mov bx, 0x7e00
 	call LoadRootDir
 
+	mov si, 0x7e00
 	call FindDirEntry
 
 	mov bx, 0x7e00				; The address we want to load the next bootloader at
