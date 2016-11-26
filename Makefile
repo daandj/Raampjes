@@ -1,22 +1,23 @@
 first_stage.img: boot/first_stage.asm
-	nasm -f bin -o first_stage.img boot/first_stage.asm
+	nasm -f bin -o images/first_stage.img boot/first_stage.asm
 
-exports:
-	export PATH="$$PATH:$$HOME/opt/bochs/bin"
-	export BXSHARE="$$HOME/opt/bochs/share/bochs"
+stage2.bin: boot/second_stage.asm
+	nasm -f bin -o images/stage2.bin boot/second_stage.asm
 
-floppy.img: first_stage.img
-	dd bs=512 count=2880 if=/dev/zero of=floppy.img
-	dd conv=notrunc if=first_stage.img of=floppy.img
+fat_img: first_stage.img 
+	cp images/empty_floppy.img images/floppy.img
+	dd conv=notrunc if=images/first_stage.img of=images/floppy.img
+
+floppy.img:	fat_img stage2.bin
+	hdiutil attach images/floppy.img
+	cp images/stage2.bin /Volumes/BOOT\ FLOPPY/stage2.bin
+	hdiutil detach /Volumes/BOOT\ FLOPPY/
 
 test: floppy.img
 	bochs -qf bochsrc
 
 clean:
-	-rm first_stage.img
-	-rm floppy.img
-	-rm parport.out
+	-rm images/first_stage.img
+	-rm images/stage2.bin
+	-rm images/floppy.img
 	-rm bochsout.txt
-
-
-

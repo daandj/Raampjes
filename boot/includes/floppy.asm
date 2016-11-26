@@ -1,5 +1,4 @@
 ; Set AX to the sector to convert
-
 LBAToCHS:
 	push ax
 	xor dx, dx
@@ -7,7 +6,7 @@ LBAToCHS:
 	inc dl
 	mov byte [SectorNumber], dl
 	xor dx, dx
-	div byte [HeadsPerCylinder]
+	div word [HeadsPerCylinder]
 	mov byte [HeadNumber], dl
 	mov byte [CylinderNumber], al
 	pop ax

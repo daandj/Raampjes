@@ -1,9 +1,9 @@
 bits	16							; We are still in 16 bit Real Mode
+org 0x7c00
 
 start:          jmp loader					; jump over OEM block
 
-TIMES 0Bh-$+start DB 0
-
+OEM:										DB "Raampjes"
 BytesPerSector:					DW 512
 SectorsPerCluster:			DB 1
 ReservedSectors:				DW 1
@@ -21,25 +21,18 @@ Unused:									DB 0
 ExtBootSignature:				DB 0x29
 bsSerialNumber:					DD 0xa0a1a2a3
 VolumeLabel:						DB "BOOT FLOPPY"
-FileSystem:							DB "FAT16   "
+FileSystem:							DB "FAT12   "
 
 %include "boot/includes/print.asm"
 %include "boot/includes/floppy.asm"
 %include "boot/includes/fat.asm"
 
 loader:
-	mov ax, 0x07c0
+	xor ax, ax
 	mov ds, ax
 	mov es, ax
-
-	cli
-	xor ax, ax
 	mov ss, ax
 	mov sp,	0x7c00 				; Set up stack
-	sti
-
-	mov si, hello_msg
-	call Print
 
 	mov si, load_root_dir
 	call Print
@@ -50,21 +43,27 @@ loader:
 	mov si, 0x7e00
 	call FindDirEntry
 
-	mov bx, 0x7e00				; The address we want to load the next bootloader at
-	call LoadFAT					; ( 0x7c00 + 0x200 ).
+	mov ax, word [es:di+0x0F]
+	mov word [Cluster], ax
+	mov bx, 0x0500
+	call LoadFAT
+	
+	mov bx, 0x7e00
+	mov word [FileAddress], bx
+	mov si, 0x0500
+	call LoadFile
 
 	mov si, loaded
 	call Print
 
-	xchg bx, bx
-	cli
-	hlt
+	jmp 0x0000:0x7e00
 
-hello_msg 							db 'Hello world!', 10, 13, 0
 load_fat 								db 'Loading File Allocation Table...', 10, 13, 0
 load_root_dir						db 'Loading Root Directory...', 10, 13, 0
 loaded 									db 'Loaded', 10, 13, 0
-FileName								db 'stage2  bin'   
+not_found								db 'Failed', 0
+FileName								db 'STAGE2  BIN'   
+Cluster									dw 0x0000
 
 times 510 - ($ - $$) DB 0
 DB 0x55
