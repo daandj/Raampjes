@@ -414,7 +414,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 # The optional parameter 'write_protected' can be used to control the media
 # write protect switch. By default it is turned off.
 #=======================================================================
-floppya: 1_44=floppy.img, status=inserted
+floppya: 1_44=images/floppy.img, status=inserted
 #floppya: image=../1.44, status=inserted
 #floppya: 1_44=/dev/fd0H1440, status=inserted
 #floppya: 1_2=../1_2, status=inserted
