@@ -21,7 +21,7 @@ enable_a20:
 	out 0x60, al							; Update controller output register on PS/2 controller
 
 	call ps2_writable
-	mov al, 0xae 							; PS/2 controller instruction to reanable keyboard.
+	mov al, 0xae 							; PS/2 controller instruction to re-enable keyboard.
 	out 0x64, al
 
 	call ps2_writable 				; Wait for PS/2 controller to be done before continuing.

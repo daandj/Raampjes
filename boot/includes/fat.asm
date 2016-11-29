@@ -43,26 +43,6 @@ LoadFile:
 	cmp dx, 0x0FF0                          ; test for end of file
 	jb LoadFile
 
-; Set ES:SI to the location of the File Allocation Table, AX to the
-; starting cluster and ES:BX to the destination of the file.
-; LoadFile:
-	; push si
-	; mov cx, 0x0002
-	; mul cx
-	; mov cx, 0x0001
-	; add si, ax
-	; mov ax, word [si]
-	; cmp ax, 0xFFFF
-	; je EndOfFile
-	; call AddressFromCluster
-	; call ReadSectors
-	; add bx, 0x0200
-	; pop si
-	; jmp LoadFile
-; EndOfFile:
-	; pop si
-	; ret
-	
 ; Set ES:BX to the adress you want to load the root directory at.
 LoadRootDir:
 	pusha
