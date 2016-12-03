@@ -29,6 +29,7 @@ LoadFile:
 	mov dx, ax                              ; copy current cluster
 	shr dx, 0x0001                          ; divide by two
 	add cx, dx                              ; sum for (3/2)
+	mov si, 0x0500
 	add si, cx                              ; index into FAT
 	mov dx, word [es:si]                       ; read two bytes from FAT
 	test ax, 0x0001
@@ -40,8 +41,12 @@ LoadFile:
 	shr dx, 0x0004                          ; take high twelve bits
 .done:
 	mov word [Cluster], dx                  ; store new cluster
+	mov bx, word [FileAddress]
+	add bx, 0x0200
+	mov word [FileAddress], bx
 	cmp dx, 0x0FF0                          ; test for end of file
 	jb LoadFile
+	ret
 
 ; Set ES:BX to the adress you want to load the root directory at.
 LoadRootDir:
