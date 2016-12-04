@@ -69,19 +69,21 @@ LoadRootDir:
 ; Directory entry.
 FindDirEntry:
 	mov cx, word [RootDirectoryEntries]
-	mov di, 0x7e00
+	mov di, si
 	xor ax, ax
 
 .loop:
 	push cx
+	push si
 	mov cx, 11
 	mov si, FileName
 
 repe cmpsb
+	pop si
 	je EntryFound
 
 	add ax, 32
-	mov di, 0x7e00
+	mov di, si
 	add di, ax
 
 	pop cx
