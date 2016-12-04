@@ -9,7 +9,7 @@ jmp main
 %include "boot/includes/floppy.asm"
 %include "boot/includes/fat.asm"
 %include "boot/includes/OEM.asm"
-; %include "boot/includes/GDT.asm"
+%include "boot/includes/GDT.asm"
 
 main:
 	mov byte [DriveNumber], dl
@@ -23,7 +23,7 @@ main:
 
 	mov si, a20_done
 	call Print
-; 
+
 	; mov bx, 0x0500
 	; call LoadRootDir
 ; 
@@ -39,7 +39,7 @@ main:
 	; mov word [FileAddress], bx
   ; mov si, 0x0500
 	; call LoadFile
-; 
+
 	mov si, mmap_start
 	call Print
 
@@ -47,7 +47,22 @@ main:
 	call map_memory
 	jc mmap_failure
 
-	; call LoadGDT
+	call LoadGDT
+
+; Switch to 32 bit protected mode.
+	mov eax, cr0
+	or eax, 1
+	mov cr0, eax
+	jmp 0x08:PMode
+
+	[bits 32]
+PMode:
+	mov ax, 0x10 ; update data segment register with new GDT entries.
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
 
 	cli
 	hlt
