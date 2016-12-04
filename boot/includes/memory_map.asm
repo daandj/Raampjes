@@ -9,10 +9,10 @@ map_memory:
 	int 0x15
 	add di, 24									; Next entry.
 	inc si											; Keep a counter.
-	jc Error
+	jc .error
 	mov edx, 0x534d4150
 	cmp eax, edx
-	jne Error
+	jne .error
 .mloop:
 	mov cx, 24
 	mov ax, 0xe820
@@ -24,7 +24,7 @@ map_memory:
 	add di, 24
 	inc si
 	jmp .mloop
-Error:
+.error:
 	stc	
 MapFinished:
 	mov word [map_entries], si	; Save counter.
