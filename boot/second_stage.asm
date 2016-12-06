@@ -24,21 +24,21 @@ main:
 	mov si, a20_done
 	call Print
 
-	; mov bx, 0x0500
-	; call LoadRootDir
-; 
-	; mov si, 0x0500
-	; call FindDirEntry
-; 
-	; mov ax, word [es:di+0x0F]
-	; mov word [Cluster], ax
-	; mov bx, 0x0500
-	; call LoadFAT
-; 
-  ; mov bx, ELF_header
-	; mov word [FileAddress], bx
-  ; mov si, 0x0500
-	; call LoadFile
+	mov bx, 0x0500
+	call LoadRootDir
+
+	mov si, 0x0500
+	call FindDirEntry
+
+	mov ax, word [es:di+0x0F]
+	mov word [Cluster], ax
+	mov bx, 0x0500
+	call LoadFAT
+
+  mov bx, ELF_header
+	mov word [FileAddress], bx
+  mov si, 0x0500
+	call LoadFile
 
 	mov si, mmap_start
 	call Print
@@ -63,6 +63,11 @@ PMode:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
+	
+	call LoadELF
+	sub eax, 0xC0000000		; The entry point contains the virtual, not the physical address.
+	add eax, 0x00100000		; Add the physical address to the offset.
+	jmp eax
 
 	cli
 	hlt
