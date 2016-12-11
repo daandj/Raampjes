@@ -3,7 +3,7 @@ KERNEL_A = $(wildcard kernel/*.asm)
 OBJS_C = $(subst kernel/,images/,$(subst .c,.o,$(KERNEL_C)))
 OBJS_A = $(subst kernel/,images/,$(subst .asm,.o,$(KERNEL_A)))
 CC = i686-elf-gcc
-CFLAGS = -std=gnu99 -ffreestanding -o2 -Wall -Wextra -nostdlib -nostartfiles
+CFLAGS = -std=gnu99 -ffreestanding -o2 -Wall -Wextra -nostdlib -Ikernel/include/
 
 images/first_stage.img: boot/first_stage.asm
 	nasm -f bin -o images/first_stage.img boot/first_stage.asm
@@ -14,8 +14,9 @@ images/stage2.bin: boot/second_stage.asm
 $(OBJS_A): $(KERNEL_A)
 	nasm -f elf -o $@ $^
 
-$(OBJS_C): $(KERNEL_C)
-	$(CC) $(CFLAGS) -o $@ $^
+images/%.o: kernel/%.c
+	echo $^
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 images/kernel.elf: $(OBJS_C) $(OBJS_A)
 	echo $^
