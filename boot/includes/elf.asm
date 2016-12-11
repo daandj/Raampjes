@@ -13,8 +13,8 @@ endstruc
 LoadELF:
 	mov ecx, 0
 	mov cx, word [e_phnum]
-	dec cx
 .loop:
+	dec cx
 	push cx
 	xor eax, eax
 	mov ax, word [e_phentsize]

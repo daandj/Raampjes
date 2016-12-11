@@ -6,21 +6,22 @@ PHYSICAL = 0x00100000;
 
 SECTIONS {
 	. = VIRTUAL;
+	. += PHYSICAL;
 
-	.text ALIGN(0x1000) : AT(ADDR(.text) + PHYSICAL - VIRTUAL) {
+	.text ALIGN(0x1000) : AT(ADDR(.text) - VIRTUAL) {
 		*(.bootstrap)
 		*(.text)
 	}
 
-	.rodata ALIGN(0x1000) : AT(ADDR(.rodata) + PHYSICAL - VIRTUAL) {
+	.rodata ALIGN(0x1000) : AT(ADDR(.rodata) - VIRTUAL) {
 		*(.rodata)
 	}
 
-	.data ALIGN(0x1000) : AT(ADDR(.data) + PHYSICAL - VIRTUAL) {
+	.data ALIGN(0x1000) : AT(ADDR(.data) - VIRTUAL) {
 		*(.data)
 	}
 
-	.bss ALIGN(0x1000): AT(ADDR(.bss) + PHYSICAL - VIRTUAL) {
+	.bss ALIGN(0x1000): AT(ADDR(.bss) - VIRTUAL) {
 		*(.bss)
 		*(COMMON)
 	}

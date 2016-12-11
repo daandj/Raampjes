@@ -66,12 +66,10 @@ PMode:
 	
 	call LoadELF
 	sub eax, 0xC0000000		; The entry point contains the virtual, not the physical address.
-	add eax, 0x00100000		; Add the physical address to the offset.
 	jmp eax
 
 	cli
 	hlt
-	xchg bx, bx
 
 mmap_failure:
 	mov si, mmap_failed
