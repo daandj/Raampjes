@@ -11,7 +11,7 @@ images/first_stage.img: boot/first_stage.asm
 images/stage2.bin: boot/second_stage.asm
 	nasm -f bin -o images/stage2.bin boot/second_stage.asm
 
-$(OBJS_A): $(KERNEL_A)
+images/%.o: kernel/%.asm
 	nasm -f elf -o $@ $^
 
 images/%.o: kernel/%.c
