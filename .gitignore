@@ -1,4 +1,5 @@
 parport.out
 bochsout.txt
+debugger.out
 .DS_Store
 *.o
