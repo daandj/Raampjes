@@ -42,6 +42,7 @@ void putchar(char c) {
 int vkprintf(const char *format, va_list ap) {
 	int ival;
 	char *sval, *c;
+	char str[12];
 
 	for (c = format; *c; *c++) {
 		if (*c != '%') {
@@ -52,8 +53,18 @@ int vkprintf(const char *format, va_list ap) {
 			case 'i':
 			case 'd':
 				ival = va_arg(ap, int);
-				char str[12];
-				itoa(ival, str);
+				itoa(ival, str, 10);
+				kprintf(str);
+				break;
+			case 'u':
+				ival = va_arg(ap, int);
+				uitoa(ival, str, 10);
+				kprintf(str);
+				break;
+			case 'x':
+			case 'X':
+				ival = va_arg(ap, int);
+				uitoa(ival, str, 16);
 				kprintf(str);
 				break;
 			case 's':
