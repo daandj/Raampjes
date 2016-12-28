@@ -17,7 +17,13 @@ int init_vga() {
 	cursor_x = 0;
 	cursor_y = 0;
 	vga_memory_address = (uint16_t *) 0xb8000;
+	clr_screen();
 	return 0;
+}
+
+void clr_screen() {
+	for (int i = 0; i < VGA_WIDTH * VGA_HEIGTH; i++)
+		vga_memory_address[i] = vga_entry(' ');
 }
 
 void putchar(char c) {
@@ -54,13 +60,14 @@ void putchar(char c) {
 			break;
 	}
 
-	if (VGA_x > VGA_WIDTH){
+	if (VGA_x >= VGA_WIDTH){
 		VGA_x = 0;
 		VGA_y++;
 	}
-	if (VGA_y > VGA_HEIGTH) {
+	if (VGA_y >= VGA_HEIGTH) {
 		VGA_x = 0;
 		VGA_y = 0;
+		clr_screen();
 	}
 	move_cursor(VGA_x, VGA_y);
 }
