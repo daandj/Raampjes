@@ -49,15 +49,18 @@ uint8_t PS2_get_scancode_set() {
 	/* The ACK output (0xfa) from the keyboard controller should be ignored. */
 	while ((input = inb(KEYBOARD_COMMAND)) == 0xfa) ;
 
-	return input;
+	if (input == 0xfe)
+		return PS2_get_scancode_set();
+	else
+		return input;
 }
 
 void keyboard_init() {
 	disable_keyboard();
-	int scancode_set = PS2_get_scancode_set();
+	/* int scancode_set = PS2_get_scancode_set();
 	if (scancode_set != 2) panic("***  Panic  ***\n\
 PS/2 controller uses the wrong scancode set: %u", scancode_set);
-	kprintf("Scancode set: %u", scancode_set);
+	kprintf("Scancode set: %u", scancode_set); */
 	enable_keyboard();
 }
 

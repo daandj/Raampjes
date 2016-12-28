@@ -26,20 +26,25 @@ void clr_screen() {
 		vga_memory_address[i] = vga_entry(' ');
 }
 
+void putxy(int x, int y, char c) {
+	int index = y * VGA_WIDTH + x;
+	vga_memory_address[index] = vga_entry(c);
+}
+
 void putchar(char c) {
 	int index;
 
 	switch (c) {
-		case '\n': 
+		case '\n':
 			VGA_x = 0;
 			VGA_y++;
 			break;
 		case '\b':
 			if (VGA_x == 0) {
-				VGA_x = VGA_WIDTH;
+				VGA_x = VGA_WIDTH-1;
 
 				if (VGA_y == 0) {
-					VGA_y = VGA_HEIGTH;
+					VGA_y = VGA_HEIGTH-1;
 				} else {
 					VGA_y--;
 				}
@@ -101,7 +106,7 @@ int vkprintf(const char *format, va_list ap) {
 				kprintf(str);
 				break;
 			case 's':
-				for (sval = va_arg(ap, char *); *sval; sval++) 
+				for (sval = va_arg(ap, char *); *sval; sval++)
 					putchar(*sval);
 				break;
 			case '%':
