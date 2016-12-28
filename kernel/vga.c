@@ -2,32 +2,57 @@
 #include <stdarg.h>
 #include <vga.h>
 #include <stdlib.h>
+#include <cpu.h>
 #define VGA_WIDTH 80
 #define VGA_HEIGTH 25
 
 uint16_t vga_entry(char);
 
-int VGA_x;
-int VGA_y;
+int VGA_x, VGA_y, cursor_x, cursor_y;
 uint16_t *vga_memory_address;
 
 int init_vga() {
 	VGA_x = 0;
 	VGA_y = 0;
+	cursor_x = 0;
+	cursor_y = 0;
 	vga_memory_address = (uint16_t *) 0xb8000;
 	return 0;
 }
 
 void putchar(char c) {
-	if (c == '\n') {
-		VGA_x = 0;
-		VGA_y++;
-		return;
-	}
+	int index;
 
-	int index = VGA_y * VGA_WIDTH + VGA_x;
-	vga_memory_address[index] = vga_entry(c);
-	VGA_x++;
+	switch (c) {
+		case '\n': 
+			VGA_x = 0;
+			VGA_y++;
+			break;
+		case '\b':
+			if (VGA_x == 0) {
+				VGA_x = VGA_WIDTH;
+
+				if (VGA_y == 0) {
+					VGA_y = VGA_HEIGTH;
+				} else {
+					VGA_y--;
+				}
+
+			} else {
+				VGA_x--;
+			}
+			index = VGA_y * VGA_WIDTH + VGA_x;
+			vga_memory_address[index] = vga_entry(' ');
+			break;
+		case '\t':
+			kprintf("%s", (VGA_x%2 == 0) ? "  " : " ");
+			break;
+		default:
+			index = VGA_y * VGA_WIDTH + VGA_x;
+			vga_memory_address[index] = vga_entry(c);
+			VGA_x++;
+			break;
+	}
 
 	if (VGA_x > VGA_WIDTH){
 		VGA_x = 0;
@@ -37,6 +62,7 @@ void putchar(char c) {
 		VGA_x = 0;
 		VGA_y = 0;
 	}
+	move_cursor(VGA_x, VGA_y);
 }
 
 int vkprintf(const char *format, va_list ap) {
@@ -89,4 +115,12 @@ int kprintf(const char *format, ...) {
 
 uint16_t vga_entry(char character) {
 	return (uint16_t) character | (uint16_t) 0xF << 8;
+}
+
+void move_cursor(int x, int y) {
+	int index = y * VGA_WIDTH + x;
+	outb(0x3d4, 14);
+	outb(0x3d5, index >> 8);
+	outb(0x3d4, 15);
+	outb(0x3d5, index);
 }
