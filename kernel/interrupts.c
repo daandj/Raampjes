@@ -2,12 +2,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <vga.h>
+#include <PIC.h>
+#include <panic.h>
+#include <keyboard.h>
 
 #define BIT32_INTR_GATE		0x8E
 #define SIZE_IDT					256
 
 int install_intr_handler(int, intr_handler);
 int install_idt(uint16_t size, struct IDTDescriptor *_idt);
+void main_irq_handler(uint32_t irq);
 
 struct IDTDescriptor IDT[SIZE_IDT];
 
@@ -33,6 +37,22 @@ int init_interrupts() {
 	install_intr_handler(MACHINE_CHECK, 								intr18);
 	install_intr_handler(SIMD_FP_EXC, 									intr19);
 	install_intr_handler(VIRTUALIZATION_EXC, 						intr20);
+	install_intr_handler(IRQ0,													intr32);
+	install_intr_handler(IRQ1,													intr33);
+	install_intr_handler(IRQ2,													intr34);
+	install_intr_handler(IRQ3,													intr35);
+	install_intr_handler(IRQ4,													intr36);
+	install_intr_handler(IRQ5,													intr37);
+	install_intr_handler(IRQ6,													intr38);
+	install_intr_handler(IRQ7,													intr39);
+	install_intr_handler(IRQ8,													intr40);
+	install_intr_handler(IRQ9,													intr41);
+	install_intr_handler(IRQ10,													intr42);
+	install_intr_handler(IRQ11,													intr43);
+	install_intr_handler(IRQ12,													intr44);
+	install_intr_handler(IRQ13,													intr45);
+	install_intr_handler(IRQ14,													intr46);
+	install_intr_handler(IRQ15,													intr47);
 	install_idt(SIZE_IDT, IDT);
 	return 0;
 }
@@ -57,19 +77,37 @@ int install_intr_handler(int intr_line, intr_handler handler) {
 	return 0;
 }
 
-void main_intr_handler(uint8_t interrupt_number) {
-	char str[12];
-	itoa(interrupt_number, str);
-	kprintf(str);
-	disable_interrupts();
-	asm ( "hlt" );
+void main_intr_handler(uint32_t interrupt_number, struct Registers regs, uint32_t error_code) {
+	if ((interrupt_number >= 32) && (interrupt_number < 48)) {
+		main_irq_handler(interrupt_number-32);
+		return;
+	};
+	
+	panic("EAX: %x, EBX: %x, ECX: %x\nEDX: %x, ESP: %x, EBP: %x\n\
+ESI: %x, EDI: %x;\nInterrupt number: %x;\nError code: %x;",
+			regs.eax, regs.ebx, regs.ecx,	regs.edx,
+			regs.esp, regs.ebp, regs.esi, regs.edi,
+			interrupt_number, error_code);
 }
 
 int install_idt(uint16_t size, struct IDTDescriptor *_idt) {
 	struct IDTR *_idtr;
 	_idtr->limit = (8 * size - 1); 
 	_idtr->base = (uint32_t) _idt;
-	asm ( "xchg %bx, %bx");
 	asm ( "lidt %0" : : "m"(*_idtr) );
 	return 0;
+}
+
+void main_irq_handler(uint32_t irq_number) {
+	switch (irq_number) {
+		case 0:
+			break;
+		case 1:
+			handle_keyboard_input();
+			break;
+		default:
+			kprintf("%u", irq_number);
+			break;
+	}
+	send_PIC_EOI(irq_number);
 }
