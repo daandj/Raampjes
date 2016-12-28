@@ -8,6 +8,10 @@
 #define KEYBOARD_COMMAND	0x60
 #define PS2_COMMAND				0x64
 
+struct {
+	bool shift, control, alt, caps, numlock;
+} State;
+
 const char key[] = {
 	'\0', '\0', '1', '2', '3', '4', '5', '6',
 	'7', '8', '9', '0', '-', '=', '\b', '\t',
@@ -16,6 +20,20 @@ const char key[] = {
 	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',
 	'\'', '`', '\0', '\\', 'z', 'x', 'c', 'v',
 	'b', 'n', 'm', ',', '.', '/', '\0', '*',
+	'\0', ' ', '\0', '\0', '\0', '\0', '\0', '\0',
+	'\0', '\0', '\0', '\0', '\0', '\0', '\0', '7',
+	'8', '9', '-', '4', '5', '6', '+', '1',
+	'2', '3', '0', '.', '\0', '\0', '\0', '\0',
+};
+
+const char key_shift[] = {
+	'\0', '\0', '!', '@', '#', '$', '%', '^',
+	'&', '*', '(', ')', '_', '+', '\b', '\t',
+	'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
+	'O', 'P', '{', '}', '\n', '\0', 'A', 'S',
+	'D', 'F', 'G', 'H', 'J', 'K', 'L', ':',
+	'"', '~', '\0', '|', 'Z', 'X', 'C', 'V',
+	'B', 'N', 'M', '<', '>', '?', '\0', '*',
 	'\0', ' ', '\0', '\0', '\0', '\0', '\0', '\0',
 	'\0', '\0', '\0', '\0', '\0', '\0', '\0', '7',
 	'8', '9', '-', '4', '5', '6', '+', '1',
@@ -95,11 +113,38 @@ uint8_t get_scan_code(bool *_make, bool *_special_key) {
 	return input; /* This should never be reached. */
 }
 
+char translate(int scancode) {
+	if (State.caps || State.shift)
+		return key_shift[scancode];
+	else
+		return key[scancode];
+}
+
 
 void handle_keyboard_input() {
 	bool make = true, special_key = false;
 	int scancode;
 	scancode = get_scan_code(&make, &special_key);
-	if ((make && !special_key) && (key[scancode] != '\0'))
-		putchar(key[scancode]);
+	switch (scancode) {
+		case 0x1d:
+			State.control = make;
+			break;
+		case 0x38:
+			State.alt = make;
+			break;
+		case 0x2a:
+		case 0x36:
+			State.shift = make;
+			break;
+		case 0x3a:
+			if (make)
+				State.caps = !State.caps;
+			break;
+		case 0x45:
+			if (make) State.numlock = !State.numlock;
+			break;
+		default:
+			if ((make && !special_key) && (key[scancode] != '\0'))
+				putchar(translate(scancode));
+	}
 }
