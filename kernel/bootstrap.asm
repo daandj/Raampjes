@@ -3,6 +3,7 @@
 [bits 32]
 section .bss
 align 0x1000
+global PageDirectory
 PageDirectory:
 	resb 4096
 PageTable1:
@@ -24,14 +25,16 @@ init_page_table:
 	mov edi, phys_addr(PageTable1)
 	mov ecx, 1024
 .loop:
+	dec cx
 	mov eax, 4096
 	mul ecx
 	or eax, 3
 	mov dword [ecx * 4 + edi], eax
-	loop .loop
+	cmp ecx, 0
+	jnz .loop
 init_page_dir:
 	mov edi, phys_addr(PageDirectory)
-	mov ecx, 1024
+	mov ecx, 1023
 .loop:
 	mov dword [ecx * 4 + edi], 0
 	loop .loop
