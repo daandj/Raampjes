@@ -11,15 +11,15 @@ PageTable1:
 StackBegin:
 	resb 4096
 StackEnd:
+Mmap_pointer:   resd 1
+Mmap_size:      resw 1
 
 section .text
 global _start
 extern kmain
 _start:
-	mov al, 'A'
-	mov ah, 3
-	mov edx, 0xb8000
-	mov [edx], ax
+	mov [phys_addr(Mmap_pointer)], esi
+	mov [phys_addr(Mmap_size)], cx	
 
 init_page_table:
 	mov edi, phys_addr(PageTable1)
@@ -53,6 +53,10 @@ enable_paging:
 
 ; Set up stack
 	mov esp, StackEnd
+
+; Pass the kmain() parameters
+	push word [phys_addr(Mmap_size)]
+	push dword [phys_addr(Mmap_pointer)]
 
 	call kmain
 	xchg bx, bx

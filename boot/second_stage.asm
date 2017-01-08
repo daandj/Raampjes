@@ -3,6 +3,8 @@ org 0x7e00
 
 jmp main
 
+%define MMAP_ADDRESS 0x0500
+
 %include "boot/includes/print.asm"
 %include "boot/includes/a20.asm"
 %include "boot/includes/memory_map.asm"
@@ -43,7 +45,7 @@ main:
 	mov si, mmap_start
 	call Print
 
-	mov di, 0x0500						; The address where the memory map will be.
+	mov di, MMAP_ADDRESS				; The address where the memory map will be.
 	call map_memory
 	jc mmap_failure
 
@@ -63,8 +65,16 @@ PMode:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	
+
 	call LoadELF
+
+; Pass the location and size of the memory map to the kernel 
+; through registers SI and CX respectively.
+	xor ecx, ecx
+	mov esi, ecx
+	mov si, MMAP_ADDRESS
+	mov cx, [map_entries]
+	
 	sub eax, 0xC0000000		; The entry point contains the virtual, not the physical address.
 	jmp eax
 

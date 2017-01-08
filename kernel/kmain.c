@@ -2,14 +2,15 @@
 #include <interrupts.h>
 #include <PIC.h>
 #include <keyboard.h>
+#include <stdint.h>
+#include <mm.h>
 
-int kmain() {
+int kmain(struct MMap *map, uint16_t mmap_size) {
 	init_vga();
-	kprintf("Hello world!\n");
 	init_interrupts();
-	kprintf("IDT initialized\n");
 	keyboard_init();
 	PIC_init();
+	init_mm();
 	enable_interrupts();
 	while (1) ;
 	return 0;
