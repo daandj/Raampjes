@@ -24,6 +24,7 @@ int init_vga() {
 void clr_screen() {
 	for (int i = 0; i < VGA_WIDTH * VGA_HEIGTH; i++)
 		vga_memory_address[i] = vga_entry(' ');
+	move_cursor(0, 0);
 }
 
 void putxy(int x, int y, char c) {
@@ -80,7 +81,7 @@ void putchar(char c) {
 int vkprintf(const char *format, va_list ap) {
 	int ival;
 	char *sval, *c;
-	char str[12];
+	char str[24];
 
 	for (c = format; *c; *c++) {
 		if (*c != '%') {
