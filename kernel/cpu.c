@@ -16,3 +16,7 @@ void kernel_halt() {
 	disable_interrupts();
 	asm ("hlt");
 }
+
+void vm_page_inval(uintptr_t address) {
+	asm ("invlpg (%0)" :: "a" (address));
+}
