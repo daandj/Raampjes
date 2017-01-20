@@ -9,7 +9,7 @@ PageDirectory:
 PageTable1:
 	resb 4096
 StackBegin:
-	resb 4096
+	resb 16384
 StackEnd:
 Mmap_pointer:   resd 1
 Mmap_size:      resw 1
