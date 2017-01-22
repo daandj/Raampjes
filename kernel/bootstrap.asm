@@ -4,6 +4,7 @@
 section .bss
 align 0x1000
 global PageDirectory
+global PageTable1
 PageDirectory:
 	resb 4096
 PageTable1:
@@ -13,6 +14,29 @@ StackBegin:
 StackEnd:
 Mmap_pointer:   resd 1
 Mmap_size:      resw 1
+
+section .data
+gdt_start:
+	dd 0
+	dd 0
+; code descriptor:
+	dw 0xffff
+	dw 0x0000
+	db 0x0
+	db 0x9a
+	db 11001111b
+	db 0x00
+; data descriptor:
+	dw 0xffff
+	dw 0x0000
+	db 0x0
+	db 0x92
+	db 11001111b
+	db 0x00
+gdt_end:
+gdtr:
+	dw gdt_end - gdt_start
+	dd gdt_start
 
 section .text
 global _start
@@ -51,6 +75,16 @@ enable_paging:
 	or eax, 0x80000000
 	mov cr0, eax
 
+load_gdt:
+	lgdt [gdtr]
+
+; Set up all of paging again, this time with virtual addresses.
+	mov eax, phys_addr(PageDirectory)
+	mov ebx, phys_addr(PageTable1)
+	or ebx, 3
+	mov dword [eax], ebx
+	mov dword [768 * 4 + eax], ebx
+
 ; Set up stack
 	mov esp, StackEnd
 
@@ -58,7 +92,8 @@ enable_paging:
 	push word [phys_addr(Mmap_size)]
 	push dword [phys_addr(Mmap_pointer)]
 
-	call kmain
+	mov eax, kmain    ; This is necessary to force the use of an absolute
+	call eax          ; function call, this way we jump to the higher half.
 	xchg bx, bx
 
 	cli

@@ -16,7 +16,7 @@ int init_vga() {
 	VGA_y = 0;
 	cursor_x = 0;
 	cursor_y = 0;
-	vga_memory_address = (uint16_t *) 0xb8000;
+	vga_memory_address = (uint16_t *) 0xc00b8000;
 	clr_screen();
 	return 0;
 }
