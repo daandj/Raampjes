@@ -15,11 +15,9 @@ images/%.o: kernel/%.asm
 	nasm -f elf -o $@ $^
 
 images/%.o: kernel/%.c
-	echo $^
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 images/kernel.elf: $(OBJS_C) $(OBJS_A)
-	echo $^
 	i686-elf-gcc -T kernel/linker.ld -ffreestanding -o2 -o $@ -nostdlib $^ -lgcc
 
 images/floppy.img: images/first_stage.img 
