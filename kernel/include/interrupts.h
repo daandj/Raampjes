@@ -87,12 +87,14 @@ struct IDTR {
 	uint32_t base;
 }__attribute((__packed__));
 
-struct Registers {
+typedef struct Registers {
 	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
-}__attribute((__packed__));
+}__attribute((__packed__)) Registers;
 
 typedef void (*intr_handler)(void);
+typedef void (*intr_callback)(Registers, uint32_t, uint32_t);
 
 int init_interrupts();
 int enable_interrupts();
 int disable_interrupts();
+int set_interrupt_callback(int interrupt, intr_callback handler);

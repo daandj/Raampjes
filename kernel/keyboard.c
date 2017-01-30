@@ -2,7 +2,9 @@
 #include <cpu.h>
 #include <vga.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <panic.h>
+#include <interrupts.h>
 
 #define PS2_DATA					0x60
 #define KEYBOARD_COMMAND	0x60
@@ -79,6 +81,7 @@ void keyboard_init() {
 	if (scancode_set != 2) panic("***  Panic  ***\n\
 PS/2 controller uses the wrong scancode set: %u", scancode_set);
 	kprintf("Scancode set: %u", scancode_set); */
+	set_interrupt_callback(33, &handle_keyboard_input);
 	enable_keyboard();
 }
 
@@ -121,7 +124,9 @@ char translate(int scancode) {
 }
 
 
-void handle_keyboard_input() {
+void handle_keyboard_input(struct Registers regs,
+                           uint32_t error_code, 
+                           uint32_t int_number) {
 	bool make = true, special_key = false;
 	int scancode;
 	scancode = get_scan_code(&make, &special_key);

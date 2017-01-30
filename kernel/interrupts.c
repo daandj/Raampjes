@@ -5,17 +5,24 @@
 #include <PIC.h>
 #include <panic.h>
 #include <keyboard.h>
+#include <cpu.h>
 
 #define BIT32_INTR_GATE		0x8E
 #define SIZE_IDT					256
 
 int install_intr_handler(int, intr_handler);
 int install_idt(uint16_t size, struct IDTDescriptor *_idt);
-void main_irq_handler(uint32_t irq);
+void main_irq_handler(Registers, uint32_t, uint32_t irq);
 
 struct IDTDescriptor IDT[SIZE_IDT];
+intr_callback callbacks[SIZE_IDT];
 
 int init_interrupts() {
+	for (int i = 0; i < SIZE_IDT; i++)
+		callbacks[i] = 0;
+	for (int i = 32; i < 48; i++)
+		callbacks[i] = &main_irq_handler;
+
 	disable_interrupts();
 	install_intr_handler(ZERO_DIVIDE, 									intr0);
 	install_intr_handler(DEBUG, 												intr1);
@@ -77,37 +84,38 @@ int install_intr_handler(int intr_line, intr_handler handler) {
 	return 0;
 }
 
-void main_intr_handler(uint32_t interrupt_number, struct Registers regs, uint32_t error_code) {
-	if ((interrupt_number >= 32) && (interrupt_number < 48)) {
-		main_irq_handler(interrupt_number-32);
+void main_intr_handler(uint32_t interrupt_number, 
+                       Registers regs, 
+											 uint32_t error_code) {
+	if (callbacks[interrupt_number]) {
+		callbacks[interrupt_number](regs, error_code, interrupt_number);
+		if (interrupt_number >= 32 && interrupt_number < 48)
+			send_PIC_EOI(interrupt_number - 32);
 		return;
-	};
-	
+	}
+		
 	panic("EAX: %x, EBX: %x, ECX: %x\nEDX: %x, ESP: %x, EBP: %x\n\
-ESI: %x, EDI: %x;\nInterrupt number: %x;\nError code: %x;",
+ESI: %x, EDI: %x, CR0: %x;\nCR2: %x, CR3: %x, CR4 %x\n\
+Interrupt number: %x;\n Error code: %x;",
 			regs.eax, regs.ebx, regs.ecx,	regs.edx,
 			regs.esp, regs.ebp, regs.esi, regs.edi,
+			read_cr0(), read_cr2(), read_cr3(), read_cr4(),
 			interrupt_number, error_code);
 }
 
 int install_idt(uint16_t size, struct IDTDescriptor *_idt) {
-	struct IDTR *_idtr;
-	_idtr->limit = (8 * size - 1); 
-	_idtr->base = (uint32_t) _idt;
-	asm ( "lidt %0" : : "m"(*_idtr) );
+	struct IDTR _idtr;
+	_idtr.limit = (8 * size - 1); 
+	_idtr.base = (uint32_t) _idt;
+	asm ( "lidt %0" : : "m"(_idtr) );
 	return 0;
 }
 
-void main_irq_handler(uint32_t irq_number) {
-	switch (irq_number) {
-		case 0:
-			break;
-		case 1:
-			handle_keyboard_input();
-			break;
-		default:
-			kprintf("%u", irq_number);
-			break;
-	}
-	send_PIC_EOI(irq_number);
+void main_irq_handler(Registers regs, uint32_t error_code, uint32_t irq_number) {
+	return;
+}
+
+int set_interrupt_callback(int interrupt, intr_callback callback) {
+	callbacks[interrupt] = callback;
+	return 0;
 }
