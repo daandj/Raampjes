@@ -15,6 +15,7 @@ int install_idt(uint16_t size, struct IDTDescriptor *_idt);
 void main_irq_handler(Registers, uint32_t, uint32_t irq);
 
 struct IDTDescriptor IDT[SIZE_IDT];
+struct IDTR _idtr;
 intr_callback callbacks[SIZE_IDT];
 
 int init_interrupts() {
@@ -104,7 +105,6 @@ Interrupt number: %x;\n Error code: %x;",
 }
 
 int install_idt(uint16_t size, struct IDTDescriptor *_idt) {
-	struct IDTR _idtr;
 	_idtr.limit = (8 * size - 1); 
 	_idtr.base = (uint32_t) _idt;
 	asm ( "lidt %0" : : "m"(_idtr) );

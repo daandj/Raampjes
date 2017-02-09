@@ -9,6 +9,7 @@ uint32_t bitmap[BITMAP_SIZE];
 int search_bitmap(bool value, int start);
 void set_bitmap(bool value, int index);
 bool get_bitmap(int index);
+void set_bitmap_area(bool value, int start, int end);
 
 /* 
  * Initialize the physical memory manager, by updating the bitmap to
@@ -16,11 +17,10 @@ bool get_bitmap(int index);
  * be used.
  */
 void init_phys_mm(struct MMap *map, uint16_t mmap_size) {
-	int i, j, first_page, last_page;
+	int i, first_page, last_page;
 
 	/* Mark entire physical address space as not locatable. */
-	for (i = 0; i < BITMAP_SIZE; i++)
-		set_bitmap(1, i);
+	set_bitmap_area(1, 0, BITMAP_SIZE);
 	
 	/* Read the memory map into the bitmap */
 	for (i = 0; i < mmap_size; i++) {
@@ -29,14 +29,25 @@ void init_phys_mm(struct MMap *map, uint16_t mmap_size) {
 			first_page = (map[i].base_address - 1)/PAGE_SIZE + 1;  /* The pluses and
 											 minuses are to make sure a page of wich only half is 
 											 available isn't mark as allocatable. */
-			last_page = (map[i].length - 1)/PAGE_SIZE + 1;
-			for (j = first_page; j < last_page; j++)
-				set_bitmap(0, j);
+			last_page = (map[i].length + map[i].base_address - 1)/PAGE_SIZE + 1;
+
+			set_bitmap_area(0, first_page, last_page);
 		}
 	}
-	/* Mark first page_table as used (BIOS data and kernel). */
-	for (i = 0; i < 1024; i++)
-		set_bitmap(1, i);
+
+	/* Set overlapping areas to the most restricting type. */
+	for (i = 0; i < mmap_size; i++) {
+		if (map[i].region_type != AVAILABLE &&
+				map[i].region_type != ACPI_reclaimable) {
+			first_page = map[i].base_address / PAGE_SIZE;
+			last_page = (map[i].length + map[i].base_address) / PAGE_SIZE;
+
+			set_bitmap_area(1, first_page, last_page);
+		}
+	}
+
+	/* Mark first 1024 page frames as used (BIOS data and kernel). */
+	set_bitmap_area(1, 0, 1024);
 }
 
 /* 
@@ -74,4 +85,13 @@ void set_bitmap(bool value, int index) {
 
 bool get_bitmap(int index) {
 	return (bitmap[index/WORD_SIZE] >> index % WORD_SIZE) & 1;
+}
+
+void set_bitmap_area(bool value, int start, int end) {
+	int j;
+	for (j = start; j < end; j++) {
+		if (j > BITMAP_SIZE)
+			continue;
+		set_bitmap(value, j);
+	}
 }

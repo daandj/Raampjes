@@ -12,6 +12,7 @@ int kmain(struct MMap *map, uint16_t mmap_size) {
 	PIC_init();
 	enable_interrupts();
 	init_mm(map, mmap_size);
+	kprintf("Memory manager done.\n");
 	while (1) ;
 	return 0;
 }
