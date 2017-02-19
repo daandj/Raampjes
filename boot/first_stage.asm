@@ -20,24 +20,26 @@ loader:
 	call LoadRootDir
 
 	mov si, 0x7e00
+	mov ax, Stage2FileName
 	call FindDirEntry
 
 	mov ax, word [es:di+0x0F]
-	mov word [Cluster], ax
+	mov word [Stage2Cluster], ax
 	mov bx, 0x0500
 	call LoadFAT
 	
 	mov bx, 0x7e00
 	mov word [FileAddress], bx
 	mov si, 0x0500
+	mov ax, word [Stage2Cluster]
 	call LoadFile
 
 	mov dl, byte [DriveNumber]
 	jmp 0x0000:0x7e00
 
 not_found								db 'Failed', 0
-FileName								db 'STAGE2  BIN'   
-Cluster									dw 0x0000
+Stage2FileName          db 'STAGE2  BIN'   
+Stage2Cluster           dw 0x0000
 
 times 510 - ($ - $$) DB 0
 DB 0x55

@@ -13,30 +13,9 @@ StackBegin:
 	resb 16384
 StackEnd:
 Mmap_pointer:   resd 1
-Mmap_size:      resw 1
-
-section .data
-gdt_start:
-	dd 0
-	dd 0
-; code descriptor:
-	dw 0xffff
-	dw 0x0000
-	db 0x0
-	db 0x9a
-	db 11001111b
-	db 0x00
-; data descriptor:
-	dw 0xffff
-	dw 0x0000
-	db 0x0
-	db 0x92
-	db 11001111b
-	db 0x00
-gdt_end:
-gdtr:
-	dw gdt_end - gdt_start
-	dd gdt_start
+Mmap_size:      resd 1
+RDAddress:			resd 1
+RDSize:         resd 1
 
 section .text
 global _start
@@ -44,6 +23,8 @@ extern kmain
 _start:
 	mov [phys_addr(Mmap_pointer)], esi
 	mov [phys_addr(Mmap_size)], cx	
+	mov [phys_addr(RDAddress)], bx
+	mov [phys_addr(RDSize)], dx
 
 init_page_table:
 	mov edi, phys_addr(PageTable1)
@@ -75,9 +56,6 @@ enable_paging:
 	or eax, 0x80000000
 	mov cr0, eax
 
-load_gdt:
-	lgdt [gdtr]
-
 ; Set up all of paging again, this time with virtual addresses.
 	mov eax, phys_addr(PageDirectory)
 	mov ebx, phys_addr(PageTable1)
@@ -89,7 +67,9 @@ load_gdt:
 	mov esp, StackEnd
 
 ; Pass the kmain() parameters
-	push word [phys_addr(Mmap_size)]
+	push dword [phys_addr(RDAddress)]
+	push dword [phys_addr(RDSize)]
+	push dword [phys_addr(Mmap_size)]
 	push dword [phys_addr(Mmap_pointer)]
 
 	mov eax, kmain    ; This is necessary to force the use of an absolute

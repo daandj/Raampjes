@@ -18,10 +18,12 @@ AddressFromCluster:
 	ret
 
 LoadFile:
-	mov ax, word [Cluster]                  ; cluster to read
-	call AddressFromCluster									; convert cluster to LBA
+	mov word [Cluster], ax                  ; save the cluster
+.loop:
+	mov ax, word [Cluster]
+	call AddressFromCluster                 ; convert cluster to LBA
 	xor cx, cx
-	mov cl, byte [SectorsPerCluster]		    ; sectors to read
+	mov cl, byte [SectorsPerCluster]        ; sectors to read
 	mov bx, word [FileAddress]
 	call ReadSectors
 	mov ax, word [Cluster]                  ; identify current cluster
@@ -31,7 +33,7 @@ LoadFile:
 	add cx, dx                              ; sum for (3/2)
 	mov si, 0x0500
 	add si, cx                              ; index into FAT
-	mov dx, word [es:si]                       ; read two bytes from FAT
+	mov dx, word [es:si]                    ; read two bytes from FAT
 	test ax, 0x0001
 	jnz .odd_cluster
 .even_cluster:
@@ -45,7 +47,7 @@ LoadFile:
 	add bx, 0x0200
 	mov word [FileAddress], bx
 	cmp dx, 0x0FF0                          ; test for end of file
-	jb LoadFile
+	jb .loop
 	ret
 
 ; Set ES:BX to the adress you want to load the root directory at.
@@ -68,6 +70,7 @@ LoadRootDir:
 ; Root Directory is loaded at 0000:7e00, sets DI to the address of the right
 ; Directory entry.
 FindDirEntry:
+	mov word [FileName], ax
 	mov cx, word [RootDirectoryEntries]
 	mov di, si
 	xor ax, ax
@@ -76,7 +79,7 @@ FindDirEntry:
 	push cx
 	push si
 	mov cx, 11
-	mov si, FileName
+	mov si, word [FileName]
 
 repe cmpsb
 	pop si
@@ -100,3 +103,5 @@ EntryFound:
 
 DataSector:							DW 0x0000
 FileAddress:						DW 0x0000
+Cluster:                DW 0x0000
+FileName:               DW 0x0000
