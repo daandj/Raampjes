@@ -1,3 +1,6 @@
+#ifndef _MM_H
+#define _MM_H
+
 #include <stdint.h>
 
 #define PAGE_SIZE     0x1000
@@ -21,3 +24,5 @@ uintptr_t enter_page(uintptr_t page_frame, uintptr_t target);
 void free_page(uintptr_t page);
 void free_page_frame(uintptr_t page_frame);
 void free_address(uintptr_t address);
+
+#endif

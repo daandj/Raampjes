@@ -1,3 +1,6 @@
+#ifndef _INTERRUPTS_H
+#define _INTERRUPTS_H
+
 #include <stdint.h>
 
 #define ZERO_DIVIDE         0
@@ -98,3 +101,5 @@ int init_interrupts();
 int enable_interrupts();
 int disable_interrupts();
 int set_interrupt_callback(int interrupt, intr_callback handler);
+
+#endif
