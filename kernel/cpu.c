@@ -18,6 +18,18 @@ inline uint8_t inb(uint16_t port) {
 	return _return;
 }
 
+inline void lgdt(struct GDTR gdtr) {
+	asm volatile ("lgdt %0" : : "m"(gdtr));
+}
+
+inline void lidt(struct IDTR idtr) {
+	asm volatile ("lidt %0" : : "m"(idtr));
+}
+
+inline void ltr(uint16_t task_desc) {
+	asm volatile ("ltr %%ax" : : "a"(task_desc));
+}
+
 void kernel_halt() {
 	disable_interrupts();
 	asm ("hlt");

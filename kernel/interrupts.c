@@ -107,7 +107,7 @@ Interrupt number: %x;\n Error code: %x;",
 int install_idt(uint16_t size, struct IDTDescriptor *_idt) {
 	_idtr.limit = (8 * size - 1); 
 	_idtr.base = (uint32_t) _idt;
-	asm ( "lidt %0" : : "m"(_idtr) );
+	lidt(_idtr);
 	return 0;
 }
 
