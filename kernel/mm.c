@@ -5,8 +5,8 @@
 #include <cpu.h>
 #include <interrupts.h>
 
-extern uint32_t PageDirectory[1024];
-extern uint32_t PageTable1[1024];
+uint32_t PageDirectory[1024] __attribute__((aligned(4096)));
+uint32_t PageTable1[1024] __attribute__((aligned(4096)));
 
 unsigned int dir_index(uintptr_t virtual_address);
 unsigned int page_table_index(uintptr_t virtual_address);

@@ -3,12 +3,8 @@
 [bits 32]
 section .bss
 align 0x1000
-global PageDirectory
-global PageTable1
-PageDirectory:
-	resb 4096
-PageTable1:
-	resb 4096
+extern PageDirectory
+extern PageTable1
 StackBegin:
 	resb 16384
 StackEnd:
