@@ -1,6 +1,6 @@
 #include <stdint.h>
-#include <cpu.h>
-#include <interrupts.h>
+#include <raampjes/cpu.h>
+#include <raampjes/interrupts.h>
 
 #define READ_CR(x) inline unsigned long read_cr ## x(void) { \
 	unsigned long val; \

@@ -1,7 +1,7 @@
 #include <stdarg.h>
-#include <panic.h>
-#include <vga.h>
-#include <cpu.h>
+#include <raampjes/panic.h>
+#include <raampjes/vga.h>
+#include <raampjes/cpu.h>
 
 void panic(const char *fmt, ...) {
 	va_list args;

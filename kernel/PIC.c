@@ -1,7 +1,7 @@
-#include <PIC.h>
-#include <vga.h>
-#include <cpu.h>
 #include <stdint.h>
+#include <raampjes/PIC.h>
+#include <raampjes/vga.h>
+#include <raampjes/cpu.h>
 
 #define PIC_EOI 								0x20
 #define ICW1										0x11

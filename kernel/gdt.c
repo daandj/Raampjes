@@ -1,6 +1,6 @@
-#include <gdt.h>
+#include <raampjes/gdt.h>
 #include <stdint.h>
-#include <cpu.h>
+#include <raampjes/cpu.h>
 
 #define SEG_DATA_RD        0x90 // Read-Only
 #define SEG_DATA_RDWR      0x92 // Read/Write
@@ -10,12 +10,6 @@
 #define SEG_SIZE_32        0x0C // 32bit descriptor
 
 #define SEG_PRIV(x)     (((x) &  0x03) << 0x05)   // Set privilege level (0 - 3)
-
-#define CREATE_DESC(base, limit, flags, access) \
-(struct GDT_entry){ \
-	(limit) & 0xFFFF, (base) & 0xFFFF, ((base) >> 16) & 0xFF, (access), \
-	((limit) >> 16) & 0x0F, (flags) & 0x0C, (base) >> 24 \
-}
 
 void load_gdt();
 

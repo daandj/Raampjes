@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <mm.h>
+#include <raampjes/mm.h>
 
 #define WORD_SIZE     32
 #define BITMAP_SIZE   (1024*1024/WORD_SIZE)
@@ -52,12 +52,12 @@ void init_phys_mm(struct MMap *map, uint16_t mmap_size) {
 
 /* 
  * Find a free page frame from the bitmap, mark it as used and
- * return its address. If no free page frames left, return NOT_FOUND (-1).
+ * return its address. If no free page frames left, return NULL (0).
  */
 uintptr_t alloc_page_frame() {
 	int page_frame;
-	if ((page_frame = search_bitmap(0, 0)) == NOT_FOUND) {
-		return NOT_FOUND;
+	if ((page_frame = search_bitmap(0, 0)) == NULL) {
+		return NULL;
 	}
 	set_bitmap(1, page_frame);
 	return PAGE_SIZE * page_frame;
@@ -76,7 +76,7 @@ int search_bitmap(bool value, int start) {
 		/* TODO: Optimize this by comparing 32 bits at a time. */
 		if (get_bitmap(i) == value)
 			return i;
-	return NOT_FOUND;
+	return NULL;
 }
 
 void set_bitmap(bool value, int index) {
