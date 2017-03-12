@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+#define IDT_BIT32_GATE      0xe
+#define IDT_BIT32_TRAP      0xf
+#define IDT_DPL_3           0x60
+#define IDT_DPL_0           0x0
+#define IDT_PRESENT         0x80
+
 #define ZERO_DIVIDE         0
 #define DEBUG               1
 #define NMI                 2
@@ -15,7 +21,7 @@
 #define COPROCESSOR_SEGMENT_OVERRUN 9
 #define INVALID_TSS         10
 #define SEGMENT_NOT_PRESENT 11
-#define STACK_SEGMENT_FAULT	12
+#define STACK_SEGMENT_FAULT 12
 #define GPF                 13
 #define PAGE_FAULT          14
 #define FPU_EXC             16
@@ -23,22 +29,23 @@
 #define MACHINE_CHECK       18
 #define SIMD_FP_EXC         19
 #define VIRTUALIZATION_EXC  20
-#define IRQ0								32
-#define IRQ1								33
-#define IRQ2								34
-#define IRQ3								35
-#define IRQ4								36
-#define IRQ5								37
-#define IRQ6								38
-#define IRQ7								39
-#define IRQ8								40
-#define IRQ9								41
-#define IRQ10								42
-#define IRQ11								43
-#define IRQ12								44
-#define IRQ13								45
-#define IRQ14								46
-#define IRQ15								47
+#define IRQ0                32
+#define IRQ1                33
+#define IRQ2                34
+#define IRQ3                35
+#define IRQ4                36
+#define IRQ5                37
+#define IRQ6                38
+#define IRQ7                39
+#define IRQ8                40
+#define IRQ9                41
+#define IRQ10               42
+#define IRQ11               43
+#define IRQ12               44
+#define IRQ13               45
+#define IRQ14               46
+#define IRQ15               47
+#define SYS_INTR            48
 
 extern void intr0();
 extern void intr1();
@@ -76,6 +83,7 @@ extern void intr44();
 extern void intr45();
 extern void intr46();
 extern void intr47();
+extern uint32_t syscall_handler();
 
 struct IDTDescriptor {
 	uint16_t offset_low;
