@@ -1,11 +1,12 @@
-AS = nasm
+CC = i686-raampjes-gcc
+LD = i686-raampjes-ld
 
-test: main.asm
-	$(AS) -f bin -o $@ $<
+test: main.c
+	$(CC) -o $@ $<
 
 all: test
 
 clean:
-	-rm test
+	-rm test test.o
 
 .PHONY: all clean

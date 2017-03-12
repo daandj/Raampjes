@@ -10,9 +10,9 @@ intr%1:
 	cld
 	push dword %1
 	call main_intr_handler
-	add sp, 4
+	add esp, 4
 	popa
-	add sp, 4
+	add esp, 4
 	iret 
 %endmacro
 
@@ -52,3 +52,23 @@ handler 44, 0
 handler 45, 0
 handler 46, 0
 handler 47, 0
+
+extern sys_table
+
+global syscall_handler
+syscall_handler:
+	push ebp
+	push edi
+	push esi
+	push edx
+	push ecx
+	push ebx
+	mov eax, [eax * 4 + sys_table] 
+	call eax
+	pop ebx
+	pop ecx
+	pop edx
+	pop esi
+	pop edi
+	pop ebp
+	iret

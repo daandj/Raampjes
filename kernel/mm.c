@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include <mm.h>
-#include <panic.h>
-#include <cpu.h>
-#include <interrupts.h>
+#include <raampjes/mm.h>
+#include <raampjes/panic.h>
+#include <raampjes/cpu.h>
+#include <raampjes/interrupts.h>
 
 uint32_t PageDirectory[1024] __attribute__((aligned(4096)));
 uint32_t PageTable1[1024] __attribute__((aligned(4096)));
@@ -11,12 +11,12 @@ uint32_t PageTable1[1024] __attribute__((aligned(4096)));
 unsigned int dir_index(uintptr_t virtual_address);
 unsigned int page_table_index(uintptr_t virtual_address);
 uintptr_t get_free_address(uintptr_t target);
-uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address);
 uintptr_t add_page_table(uintptr_t virtual_address, uint32_t flags);
 uint32_t *get_page_entry(uintptr_t virtual_address);
 uintptr_t page_frame(uintptr_t page);
 void page_fault_handler(void);
 uintptr_t get_page_table(uintptr_t virtual_address);
+bool page_present(uintptr_t virtual_address);
 
 /* 
  * Initialize the memory manager.
@@ -40,9 +40,27 @@ void init_mm(struct MMap *map, uint16_t mmap_size) {
  * first free virtual address, starting from the 'target' address and
  * return the virtual address.
  */
-uintptr_t alloc_page(uintptr_t target) {
+uintptr_t alloc_page(uintptr_t target, int flags) {
 	uintptr_t page_frame = alloc_page_frame();
-	return enter_page(page_frame, target);
+	return enter_page(page_frame, target, flags);
+}
+
+/*
+ * Allocate enough pages to contain the range of virtual addresses specified.
+ */
+uintptr_t alloc_pages(uintptr_t begin_addr, uintptr_t end_addr, int flags) {
+	unsigned int first_page, last_page;
+	first_page = begin_addr / PAGE_SIZE;
+	last_page = (end_addr - 1) / PAGE_SIZE + 1;
+	for (unsigned int i = first_page; i <= last_page; i++) {
+		if (page_present(i * PAGE_SIZE)) {
+			continue;
+		}
+		uintptr_t page_frame = alloc_page_frame();
+		map_page(page_frame, i * PAGE_SIZE, flags);
+	}
+
+	return begin_addr / PAGE_SIZE * PAGE_SIZE;
 }
 
 /* 
@@ -57,9 +75,9 @@ void free_page(uintptr_t page) {
 /* 
  * Do the same as 'map_page', but use the first free virtual address.
  */
-uintptr_t enter_page(uintptr_t page_frame, uintptr_t virtual_address) {
-	uintptr_t address = get_free_address(virtual_address);
-	return map_page(page_frame, address);
+uintptr_t enter_page(uintptr_t page_frame, uintptr_t target, int flags) {
+	uintptr_t address = get_free_address(target);
+	return map_page(page_frame, address, flags);
 }
 
 /* 
@@ -67,7 +85,7 @@ uintptr_t enter_page(uintptr_t page_frame, uintptr_t virtual_address) {
  */
 void free_address(uintptr_t address) {
 	uint32_t *page_entry = get_page_entry(address);
-	if (page_entry == NOT_FOUND)
+	if (page_entry != NULL)
 		*page_entry &= ~1;
 	vm_page_inval(address);
 }
@@ -76,15 +94,14 @@ void free_address(uintptr_t address) {
  * Map the specified page frame to the virtual address and return the virtal address.
  * Be carefull though, it doesn't care whether or not the address is already taken.
  */
-uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address) {
+uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address, int flags) {
 	uint32_t *page_entry;
-	if (get_page_entry(virtual_address) == NOT_FOUND) {
-		int flags = 0;
+	if (get_page_entry(virtual_address) == NULL) {
 		add_page_table(virtual_address, flags);
 	}
 
 	page_entry = get_page_entry(virtual_address);
-	*page_entry = (page_frame & 0xFFFFF000) | 3;
+	*page_entry = (page_frame & 0xFFFFF000) | flags | 1;
 	return virtual_address;
 }
 
@@ -94,7 +111,7 @@ uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address) {
 uint32_t *get_page_entry(uintptr_t virtual_address) {
 	uint32_t page_dir_entry = PageDirectory[dir_index(virtual_address)];
 	if (!(page_dir_entry & 1))
-		return NOT_FOUND;
+		return NULL;
 	uint32_t *page_table = (uint32_t *)get_page_table(virtual_address);
 	uint32_t page_index = page_table_index(virtual_address);
 	return &page_table[page_index];
@@ -149,11 +166,21 @@ uintptr_t get_free_address(uintptr_t target) {
 
 uintptr_t page_frame(uintptr_t page) {
 	uint32_t *page_entry;
-	if ((page_entry = get_page_entry(page)) == NOT_FOUND)
-		return NOT_FOUND;
+	if ((page_entry = get_page_entry(page)) == NULL)
+		return NULL;
 	return *page_entry & 0xFFFFF000;
 }
 
 uintptr_t get_page_table(uintptr_t virtual_address) {
 	return (uintptr_t)(0 - PAGE_SIZE * (1024 - dir_index(virtual_address)));
+}
+
+bool page_present(uintptr_t virtual_address) {
+	uint32_t *page_entry = get_page_entry(virtual_address);
+	if (page_entry == NULL)
+		return false;
+	else if (*page_entry & 1)
+		return true;
+	else
+		return false;
 }

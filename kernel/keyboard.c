@@ -1,10 +1,10 @@
-#include <keyboard.h>
-#include <cpu.h>
-#include <vga.h>
+#include <raampjes/keyboard.h>
+#include <raampjes/cpu.h>
+#include <raampjes/vga.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <panic.h>
-#include <interrupts.h>
+#include <raampjes/panic.h>
+#include <raampjes/interrupts.h>
 
 #define PS2_DATA					0x60
 #define KEYBOARD_COMMAND	0x60
@@ -150,6 +150,6 @@ void handle_keyboard_input(struct Registers regs,
 			break;
 		default:
 			if ((make && !special_key) && (key[scancode] != '\0'))
-				putchar(translate(scancode));
+				tty_input(translate(scancode));
 	}
 }

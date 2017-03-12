@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <stdarg.h>
-#include <vga.h>
-#include <stdlib.h>
-#include <cpu.h>
+#include <raampjes/vga.h>
+#include <raampjes/stdlib.h>
+#include <raampjes/cpu.h>
 #define VGA_WIDTH 80
 #define VGA_HEIGTH 25
 
@@ -32,7 +32,7 @@ void putxy(int x, int y, char c) {
 	vga_memory_address[index] = vga_entry(c);
 }
 
-void putchar(char c) {
+void vga_putchar(char c) {
 	int index;
 
 	switch (c) {
@@ -85,7 +85,7 @@ int vkprintf(const char *format, va_list ap) {
 
 	for (c = format; *c; *c++) {
 		if (*c != '%') {
-			putchar(*c);
+			vga_putchar(*c);
 			continue;
 		}
 		switch (*++c) {
@@ -108,10 +108,10 @@ int vkprintf(const char *format, va_list ap) {
 				break;
 			case 's':
 				for (sval = va_arg(ap, char *); *sval; sval++)
-					putchar(*sval);
+					vga_putchar(*sval);
 				break;
 			case '%':
-				putchar('%');
+				vga_putchar('%');
 				break;
 		}
 	}
