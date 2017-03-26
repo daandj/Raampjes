@@ -2,6 +2,7 @@
 #define _MM_H
 
 #include <stdint.h>
+#include <raampjes/multiboot2.h>
 
 #define PAGE_SIZE     0x1000
 #define NULL          (void *)0
@@ -12,17 +13,8 @@
 #define PG_RW         0x2
 #define PG_RO         0x0
 
-enum REGION_TYPE { AVAILABLE = 1, RESERVED, ACPI_reclaimable, ACPI_NVS, BAD_MEM };
-
-struct MMap {
-	uint64_t base_address;
-	uint64_t length;
-	uint32_t region_type;
-	uint32_t ACPI_attributes;
-}__attribute__((__packed__));
-
-void init_mm(struct MMap *map, uint16_t mmap_size);
-void init_phys_mm(struct MMap *map, uint16_t mmap_size);
+void init_mm(struct multiboot_tag_mmap *map);
+void init_phys_mm(struct multiboot_tag_mmap *map);
 uintptr_t alloc_page(uintptr_t target, int flags);
 uintptr_t alloc_pages(uintptr_t begin_addr, uintptr_t end_addr, int flags);
 uintptr_t alloc_page_frame();

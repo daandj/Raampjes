@@ -10,6 +10,14 @@
 #define SEG_SIZE_32        0x0C // 32bit descriptor
 
 #define SEG_PRIV(x)     (((x) &  0x03) << 0x05)   // Set privilege level (0 - 3)
+#define reload_segments(code, data) \
+	asm ("ljmp $" #code ", $1f;" \
+			"1:mov $" #data ", %eax;" \
+			"mov %eax, %ds;" \
+			"mov %eax, %es;" \
+			"mov %eax, %fs;" \
+			"mov %eax, %gs;" \
+			"mov %eax, %ss;"); \
 
 void load_gdt();
 
@@ -23,6 +31,7 @@ void init_gdt() {
 	GDT[4] = CREATE_DESC(0, 0xFFFFF, SEG_SIZE_32, SEG_PRIV(3) | SEG_CODE_EXRD);
 	GDT[5] = CREATE_DESC(0, 0xFFFFF, SEG_SIZE_32, SEG_PRIV(3) | SEG_DATA_RDWR);
 	load_gdt();
+	reload_segments(0x8, 0x10);
 }
 
 void load_gdt() {

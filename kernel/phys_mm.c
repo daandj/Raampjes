@@ -5,7 +5,7 @@
 #define WORD_SIZE     32
 #define BITMAP_SIZE   (1024*1024/WORD_SIZE)
 
-uint32_t bitmap[BITMAP_SIZE];
+static uint32_t bitmap[BITMAP_SIZE];
 int search_bitmap(bool value, int start);
 void set_bitmap(bool value, int index);
 bool get_bitmap(int index);
@@ -16,31 +16,32 @@ void set_bitmap_area(bool value, int start, int end);
  * the current situation and mark sure unusable parts of the memory won't
  * be used.
  */
-void init_phys_mm(struct MMap *map, uint16_t mmap_size) {
+void init_phys_mm(struct multiboot_tag_mmap *map_tag) {
 	int i, first_page, last_page;
+	multiboot_memory_map_t *map = VIRTUAL_ADDRESS(map_tag->entries);
 
 	/* Mark entire physical address space as not locatable. */
-	set_bitmap_area(1, 0, BITMAP_SIZE);
+	set_bitmap_area(1, 0, BITMAP_SIZE * WORD_SIZE);
 	
 	/* Read the memory map into the bitmap */
-	for (i = 0; i < mmap_size; i++) {
-		if (map[i].region_type == AVAILABLE || 
-				map[i].region_type == ACPI_reclaimable) {
-			first_page = (map[i].base_address - 1)/PAGE_SIZE + 1;  /* The pluses and
+	for (i = 0; &map[i] < (uint8_t *)map_tag + map_tag->size; i++) {
+		if (map[i].type == MULTIBOOT_MEMORY_AVAILABLE || 
+				map[i].type == MULTIBOOT_MEMORY_ACPI_RECLAIMABLE) {
+			first_page = (map[i].addr - 1)/PAGE_SIZE + 1;  /* The pluses and
 											 minuses are to make sure a page of wich only half is 
 											 available isn't mark as allocatable. */
-			last_page = (map[i].length + map[i].base_address - 1)/PAGE_SIZE + 1;
+			last_page = (map[i].len + map[i].addr - 1)/PAGE_SIZE + 1;
 
 			set_bitmap_area(0, first_page, last_page);
 		}
 	}
 
 	/* Set overlapping areas to the most restricting type. */
-	for (i = 0; i < mmap_size; i++) {
-		if (map[i].region_type != AVAILABLE &&
-				map[i].region_type != ACPI_reclaimable) {
-			first_page = map[i].base_address / PAGE_SIZE;
-			last_page = (map[i].length + map[i].base_address) / PAGE_SIZE;
+	for (i = 0; &map[i] < (uint8_t *)map_tag + map_tag->size; i++) {
+		if (map[i].type != MULTIBOOT_MEMORY_AVAILABLE &&
+				map[i].type != MULTIBOOT_MEMORY_ACPI_RECLAIMABLE) {
+			first_page = map[i].addr / PAGE_SIZE;
+			last_page = (map[i].len + map[i].addr) / PAGE_SIZE;
 
 			set_bitmap_area(1, first_page, last_page);
 		}
@@ -90,7 +91,7 @@ bool get_bitmap(int index) {
 void set_bitmap_area(bool value, int start, int end) {
 	int j;
 	for (j = start; j < end; j++) {
-		if (j > BITMAP_SIZE)
+		if (j > BITMAP_SIZE * WORD_SIZE)
 			continue;
 		set_bitmap(value, j);
 	}

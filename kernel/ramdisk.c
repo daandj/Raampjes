@@ -7,6 +7,7 @@
 #include <raampjes/sched.h>
 #include <raampjes/elf.h>
 
+static char rd_path[] = "/boot/initrd.tar";
 
 static TarHeader *first_header;
 static unsigned int tar_size;
@@ -16,15 +17,19 @@ TarHeader *find_file(const char *name);
 void load_file(char *file, unsigned int file_size, StackFrame *stack_frame);
 void load_bin(char *file, unsigned int file_size, StackFrame *stack_frame);
 
-void init_rd(void *address, unsigned int size) {
-	first_header = (TarHeader *)address;
-	tar_size = size;
+void init_rd(struct multiboot_tag_module *tag) {
+	if (!strncmp(tag->cmdline, rd_path, sizeof(rd_path))) {
+		first_header = (TarHeader *)VIRTUAL_ADDRESS(tag->mod_start);
+		tar_size = tag->mod_end - tag->mod_start;
+	} else
+		panic("Ramdisk not detected, cmd: %s\n", tag->cmdline);
 }
 
-void execve(const char *path, char *const argv[], char *const envp[]) {
+int do_execve(const char *path, char *const argv[], char *const envp[]) {
 	TarHeader *file_header;
 	if (NULL == (file_header = find_file(path)))
 		panic("\n*** PANIC ***\nFile: %s not found.", path);
+
 	unsigned int file_size = getsize(file_header->size);
 
 	uintptr_t page_frame = alloc_page_frame();
@@ -34,9 +39,13 @@ void execve(const char *path, char *const argv[], char *const envp[]) {
 	StackFrame *stack_frame = (StackFrame *)(current->esp0 - sizeof(StackFrame));
 
 	load_file((char *)file_header + 512, file_size, stack_frame);
+	current->heap_start = ((current->data_end >> 12) + 1) << 12;
+	current->heap_end = current->heap_start;
 
 	current->esp = (uintptr_t)stack_frame;
 	stack_frame->orig_esp = stack + PAGE_SIZE;
+
+	return 0;
 }
 
 unsigned int getsize(const char *in) {
@@ -77,6 +86,8 @@ void load_file(char *file, unsigned int file_size, StackFrame *stack_frame) {
 
 void load_bin(char *file, unsigned int file_size, StackFrame *stack_frame) {
 	alloc_pages(0, file_size, PG_USER | PG_RW);
+	current->data_start = 0;
+	current->data_end = file_size;
 
 	memcpy((char *)0, file, file_size);
 	stack_frame->eip = 0;

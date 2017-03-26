@@ -8,6 +8,10 @@ SECTIONS {
 	. = VIRTUAL;
 	. += PHYSICAL;
 
+	.multiboot ALIGN(0x40) : AT(ADDR(.multiboot) - VIRTUAL) {
+		*(.multiboot)
+	}
+
 	.text ALIGN(0x1000) : AT(ADDR(.text) - VIRTUAL) {
 		*(.bootstrap)
 		*(.text)

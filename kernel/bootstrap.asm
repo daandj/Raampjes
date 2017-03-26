@@ -1,6 +1,18 @@
 %define phys_addr(x) ((x)-0xc0000000)
 
 [bits 32]
+section .multiboot
+header_start:
+	dd 0xe85250d6
+	dd 0
+	dd header_end - header_start
+	dd 0x100000000 - (0xe85250d6 + (header_end - header_start))
+
+	dw 0
+	dw 0
+	dd 8
+header_end:
+
 section .bss
 align 0x1000
 extern PageDirectory
@@ -8,19 +20,15 @@ extern PageTable1
 StackBegin:
 	resb 16384
 StackEnd:
-Mmap_pointer:   resd 1
-Mmap_size:      resd 1
-RDAddress:			resd 1
-RDSize:         resd 1
+Magic:                   resd 1
+Multiboot_pointer:       resd 1
 
 section .text
 global _start
 extern kmain
 _start:
-	mov [phys_addr(Mmap_pointer)], esi
-	mov [phys_addr(Mmap_size)], cx	
-	mov [phys_addr(RDAddress)], bx
-	mov [phys_addr(RDSize)], dx
+	mov dword [phys_addr(Magic)], eax
+	mov dword [phys_addr(Multiboot_pointer)], ebx
 
 init_page_table:
 	mov edi, phys_addr(PageTable1)
@@ -63,10 +71,8 @@ enable_paging:
 	mov esp, StackEnd
 
 ; Pass the kmain() parameters
-	push dword [phys_addr(RDAddress)]
-	push dword [phys_addr(RDSize)]
-	push dword [phys_addr(Mmap_size)]
-	push dword [phys_addr(Mmap_pointer)]
+	push dword [phys_addr(Multiboot_pointer)]
+	push dword [phys_addr(Magic)]
 
 	mov eax, kmain    ; This is necessary to force the use of an absolute
 	call eax          ; function call, this way we jump to the higher half.

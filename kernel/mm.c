@@ -4,6 +4,7 @@
 #include <raampjes/panic.h>
 #include <raampjes/cpu.h>
 #include <raampjes/interrupts.h>
+#include <raampjes/sched.h>
 
 uint32_t PageDirectory[1024] __attribute__((aligned(4096)));
 uint32_t PageTable1[1024] __attribute__((aligned(4096)));
@@ -17,12 +18,13 @@ uintptr_t page_frame(uintptr_t page);
 void page_fault_handler(void);
 uintptr_t get_page_table(uintptr_t virtual_address);
 bool page_present(uintptr_t virtual_address);
+void page_fault(Registers regs, uint32_t error_code);
 
 /* 
  * Initialize the memory manager.
  */
-void init_mm(struct MMap *map, uint16_t mmap_size) {
-	init_phys_mm(map, mmap_size);
+void init_mm(struct multiboot_tag_mmap *map) {
+	init_phys_mm(map);
 	/*
 	 * We map the page directory to the last entry of itself, this way
 	 * it maps all the present page tables to the last 1024 pages in the
@@ -33,6 +35,7 @@ void init_mm(struct MMap *map, uint16_t mmap_size) {
 	/* Because were now fully operating in the higher half we don't
 	 * need the first 4MiB to be mapped, so we free it. */
 	PageDirectory[0] &= ~1;
+	set_interrupt_callback(0xE, &page_fault);
 }
 
 /*
@@ -184,3 +187,17 @@ bool page_present(uintptr_t virtual_address) {
 	else
 		return false;
 }
+
+void page_fault(Registers regs, uint32_t error_code) {
+	uint32_t cr2 = read_cr2();
+
+	if (error_code & 1) {
+		panic("*** PANIC ***\nPage protection violation");
+	} else if (cr2 >= current->heap_start && cr2 < current->heap_end) {
+		alloc_page(cr2, PG_USER | PG_RW);
+		return;
+	}
+
+	panic("*** PAGE FAULT ***\nCR2: %x, error code: %x", cr2, error_code);
+}
+
