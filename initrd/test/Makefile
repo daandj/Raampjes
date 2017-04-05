@@ -7,6 +7,6 @@ test: main.c
 all: test
 
 clean:
-	-rm test test.o
+	-rm test
 
 .PHONY: all clean

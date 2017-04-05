@@ -2,19 +2,21 @@ CC = i686-raampjes-gcc
 AS = nasm
 AR = i686-raampjes-ar
 
-FILES = string/strlen \
-				string/strncmp \
-				string/memcpy \
+FILES =	string/memcpy \
 				string/memset \
+				string/strlen \
+				string/strncmp \
 				stdlib/exit \
+				unistd/execve \
 				unistd/fork \
+				unistd/read \
 				unistd/write \
 
 LIBC_OBJS = $(addsuffix .libc.o,$(addprefix build/,$(FILES)))
 LIBK_OBJS = $(addsuffix .libk.o,$(addprefix build/,$(FILES)))
 
 CFLAGS = -Wall -Wextra
-LIBK_FLAGS = $(CFlAGS) -ffreestanding
+LIBK_FLAGS = $(CFLAGS) -ffreestanding -D _IS_LIBK
 
 .PHONY: all clean
 
@@ -32,7 +34,7 @@ build/%.libc.o: lib/%.c
 
 build/%.libk.o: lib/%.c
 	-mkdir -p $(dir $@)
-	$(CC) $(LIBK_CFLAGS) -c $< -o $@
+	$(CC) $(LIBK_FLAGS) -c $< -o $@
 
 build/i386/crt0.o: i386/crt0.asm
 	-mkdir -p $(dir $@)

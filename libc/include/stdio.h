@@ -17,12 +17,17 @@ typedef struct _iobuf {
 	int fd;
 } FILE;
 
+/* TODO: Implement the standard io streams.
+ * extern FILE _iob[OPEN_MAX];
+ *
+ * #define stdin  (&_iob[0])
+ * #define stdout (&_iob[1])
+ * #define stderr (&_iob[2])
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern FILE* stderr;
-#define stderr stderr
 
 int fclose(FILE*);
 int fflush(FILE*);

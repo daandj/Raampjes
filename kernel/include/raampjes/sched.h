@@ -1,6 +1,8 @@
 #ifndef _SCHED_H
 #define _SCHED_H
 
+#include <sys/types.h>
+
 #define MAX_TASKS 128
 
 #define switch_to_userspace() \
@@ -68,15 +70,24 @@ typedef struct stack_frame {
 } __attribute__((__packed__)) StackFrame;
 
 typedef struct task_struct {
-	uint32_t esp0;
 	uint32_t esp;
+	uint32_t eip;
+	uint32_t ebp;
 	uint32_t *page_directory;
+	/* Everything above this must stay in the current order! */
+	uint32_t esp0;
+	pid_t pid;
 	int state;
 	int exit_status;
+	uint32_t code_start, code_end, data_start, data_end;
+	uint32_t heap_start, heap_end, stack_start, stack_end;
+	struct task_struct *next_process;
+	struct task_struct *prev_process;
 } TaskStruct;
 
 extern TaskStruct *current;
 
 void init_sched();
+void sched();
 
 #endif

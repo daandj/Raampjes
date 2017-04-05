@@ -11,7 +11,7 @@
 
 int install_intr_handler(int, intr_handler, int);
 int install_idt(uint16_t size, struct IDTDescriptor *_idt);
-void main_irq_handler(Registers, uint32_t, uint32_t irq);
+void main_irq_handler(Registers, uint32_t);
 
 struct IDTDescriptor IDT[SIZE_IDT];
 struct IDTR _idtr;
@@ -94,7 +94,7 @@ void main_intr_handler(uint32_t interrupt_number,
                        Registers regs, 
 											 uint32_t error_code) {
 	if (callbacks[interrupt_number]) {
-		callbacks[interrupt_number](regs, error_code, interrupt_number);
+		callbacks[interrupt_number](regs, error_code);
 		if (interrupt_number >= 32 && interrupt_number < 48)
 			send_PIC_EOI(interrupt_number - 32);
 		return;
@@ -116,7 +116,7 @@ int install_idt(uint16_t size, struct IDTDescriptor *_idt) {
 	return 0;
 }
 
-void main_irq_handler(Registers regs, uint32_t error_code, uint32_t irq_number) {
+void main_irq_handler(Registers regs, uint32_t error_code) {
 	return;
 }
 

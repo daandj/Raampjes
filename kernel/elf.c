@@ -26,8 +26,19 @@ void load_elf(char *file, unsigned int file_size, StackFrame *stack_frame) {
 			continue;
 
 		int flags = PG_USER;
-		if (header.p_flags & 2)
+
+		if (header.p_flags & 1) {
+			if (!current->code_start) 
+				current->data_start = header.p_vaddr;
+			if (!current->code_end) 
+				current->code_end = header.p_vaddr + header.p_memsz;
+		} else if (header.p_flags & 2) {
 			flags |= PG_RW;
+			if (!current->data_start) 
+				current->data_start = header.p_vaddr;
+			if (!current->data_end) 
+				current->data_end = header.p_vaddr + header.p_memsz;
+		}
 
 		alloc_pages(header.p_vaddr, header.p_vaddr + header.p_memsz, flags);
 

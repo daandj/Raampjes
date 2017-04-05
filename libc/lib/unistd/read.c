@@ -1,4 +1,4 @@
-#ifdef __STDC_HOSTED__
+#ifndef _IS_LIBK
 
 #include <unistd.h>
 #include <stddef.h>

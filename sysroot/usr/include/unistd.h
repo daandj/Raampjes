@@ -5,6 +5,7 @@
 #define _SYSI_fork            0
 #define _SYSI_write           1
 #define _SYSI_read            2
+#define _SYSI_execve          3
 
 #define _SYSCALL0(type, name) \
 	type name() { \

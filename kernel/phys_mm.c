@@ -2,14 +2,17 @@
 #include <stdint.h>
 #include <raampjes/mm.h>
 
-#define WORD_SIZE     32
-#define BITMAP_SIZE   (1024*1024/WORD_SIZE)
+#define BITMAP_SIZE   (1024*1024)
 
-static uint32_t bitmap[BITMAP_SIZE];
+static uint8_t bitmap[BITMAP_SIZE];
 int search_bitmap(bool value, int start);
 void set_bitmap(bool value, int index);
-bool get_bitmap(int index);
+int get_bitmap(int index);
 void set_bitmap_area(bool value, int start, int end);
+void increase_bitmap(int index);
+void decrease_bitmap(int index);
+void increase_bitmap_area(int start, int end);
+void decrease_bitmap_area(int start, int end);
 
 /* 
  * Initialize the physical memory manager, by updating the bitmap to
@@ -21,10 +24,10 @@ void init_phys_mm(struct multiboot_tag_mmap *map_tag) {
 	multiboot_memory_map_t *map = VIRTUAL_ADDRESS(map_tag->entries);
 
 	/* Mark entire physical address space as not locatable. */
-	set_bitmap_area(1, 0, BITMAP_SIZE * WORD_SIZE);
+	set_bitmap_area(1, 0, BITMAP_SIZE);
 	
 	/* Read the memory map into the bitmap */
-	for (i = 0; &map[i] < (uint8_t *)map_tag + map_tag->size; i++) {
+	for (i = 0; (uintptr_t)&map[i] < (uintptr_t)map_tag + map_tag->size; i++) {
 		if (map[i].type == MULTIBOOT_MEMORY_AVAILABLE || 
 				map[i].type == MULTIBOOT_MEMORY_ACPI_RECLAIMABLE) {
 			first_page = (map[i].addr - 1)/PAGE_SIZE + 1;  /* The pluses and
@@ -37,7 +40,7 @@ void init_phys_mm(struct multiboot_tag_mmap *map_tag) {
 	}
 
 	/* Set overlapping areas to the most restricting type. */
-	for (i = 0; &map[i] < (uint8_t *)map_tag + map_tag->size; i++) {
+	for (i = 0; (uintptr_t)&map[i] < (uintptr_t)map_tag + map_tag->size; i++) {
 		if (map[i].type != MULTIBOOT_MEMORY_AVAILABLE &&
 				map[i].type != MULTIBOOT_MEMORY_ACPI_RECLAIMABLE) {
 			first_page = map[i].addr / PAGE_SIZE;
@@ -71,28 +74,47 @@ void free_page_frame(uintptr_t page_frame) {
 	set_bitmap(0, page_frame / PAGE_SIZE);
 }
 
+/* 
+ * Increase the amount of references counted in the bitmap.
+ */
+void inc_phys_refs(uintptr_t start, uintptr_t end) {
+	unsigned int first_page = start / PAGE_SIZE;
+	unsigned int final_page = end / PAGE_SIZE;
+
+	for (unsigned int i = first_page; i >= final_page; i++)
+		increase_bitmap(page_frame(i * PAGE_SIZE));
+}
+
+
 int search_bitmap(bool value, int start) {
-	int size = WORD_SIZE * BITMAP_SIZE;
+	int size = BITMAP_SIZE;
 	for (int i = start; i < size; i++) 
-		/* TODO: Optimize this by comparing 32 bits at a time. */
 		if (get_bitmap(i) == value)
 			return i;
 	return NULL;
 }
 
-void set_bitmap(bool value, int index) {
-	bitmap[index/WORD_SIZE] ^= (-value ^ bitmap[index/WORD_SIZE]) & (1 << index);
+inline void set_bitmap(bool value, int index) {
+	bitmap[index] = value;
 }
 
-bool get_bitmap(int index) {
-	return (bitmap[index/WORD_SIZE] >> index % WORD_SIZE) & 1;
+inline int get_bitmap(int index) {
+	return bitmap[index];
 }
 
 void set_bitmap_area(bool value, int start, int end) {
 	int j;
 	for (j = start; j < end; j++) {
-		if (j > BITMAP_SIZE * WORD_SIZE)
+		if (j > BITMAP_SIZE)
 			continue;
 		set_bitmap(value, j);
 	}
+}
+
+inline void increase_bitmap(int index) {
+	bitmap[index]++;
+}
+
+inline void decrease_bitmap(int index) {
+	bitmap[index]--;
 }

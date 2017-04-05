@@ -103,7 +103,7 @@ typedef struct Registers {
 }__attribute((__packed__)) Registers;
 
 typedef void (*intr_handler)(void);
-typedef void (*intr_callback)(Registers, uint32_t, uint32_t);
+typedef void (*intr_callback)(Registers, uint32_t);
 
 int init_interrupts();
 int enable_interrupts();

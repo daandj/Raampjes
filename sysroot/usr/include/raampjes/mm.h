@@ -23,5 +23,8 @@ uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address, int flags);
 void free_page(uintptr_t page);
 void free_page_frame(uintptr_t page_frame);
 void free_address(uintptr_t address);
+uintptr_t page_frame(uintptr_t page);
+uint32_t *fork_mem(uint32_t *orig_page_dir);
+void inc_phys_refs(uintptr_t start, uintptr_t end);
 
 #endif
