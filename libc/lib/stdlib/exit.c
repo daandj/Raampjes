@@ -1,10 +1,10 @@
+#ifndef _IS_LIBK
+
 #include <stdlib.h>
-#include <raampjes/panic.h>
+#include <unistd.h>
 
 void exit(int status) {
-#ifdef __STDC_HOSTED__
-	for (;;) ;
-#else
-	panic("*** PANIC ***\nFunction exit() is not intended for kernel use.");
-#endif
+	_exit(status);
 }
+
+#endif

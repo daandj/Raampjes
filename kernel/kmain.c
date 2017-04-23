@@ -42,7 +42,6 @@ int kmain(uint32_t magic, uintptr_t addr) {
 
 	init_sched();
 	execve("bin/test", cmd, envp);
-	switch_to_userspace();
 	while (1) ;
 	return 0;
 }

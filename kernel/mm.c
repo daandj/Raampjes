@@ -24,9 +24,10 @@ bool CoW_enabled(uintptr_t addr);
 void pf_non_present(uint32_t addr);
 void pf_rsvd();
 void pf_ro_violation(uint32_t addr);
+void copy_page_table(uintptr_t table);
 
 
-/* 
+/*
  * Initialize the memory manager.
  */
 void init_mm(struct multiboot_tag_mmap *map) {
@@ -47,7 +48,7 @@ void init_mm(struct multiboot_tag_mmap *map) {
 }
 
 /*
- * Allocate a new page frame, put it at the 
+ * Allocate a new page frame, put it at the
  * first free virtual address, starting from the 'target' address and
  * return the virtual address.
  */
@@ -74,16 +75,19 @@ uintptr_t alloc_pages(uintptr_t begin_addr, uintptr_t end_addr, int flags) {
 	return begin_addr / PAGE_SIZE * PAGE_SIZE;
 }
 
-/* 
- * Free the page frame and mark the virtual address as not present 
+/*
+ * Free the page frame and mark the virtual address as not present
  * in de page table.
  */
 void free_page(uintptr_t page) {
-	free_page_frame(page_frame(page));
-	free_address(page);
+	uintptr_t page_entry = get_page_entry(page);
+	if (page_entry && (*(uint32_t *)page_entry & 1)) {
+		free_page_frame(page_frame(page));
+		free_address(page);
+	}
 }
 
-/* 
+/*
  * Do the same as 'map_page', but use the first free virtual address.
  */
 uintptr_t enter_page(uintptr_t page_frame, uintptr_t target, int flags) {
@@ -91,32 +95,38 @@ uintptr_t enter_page(uintptr_t page_frame, uintptr_t target, int flags) {
 	return map_page(page_frame, address, flags);
 }
 
-/* 
+/*
  * Mark the page that corresponds with the address as not present.
  */
 void free_address(uintptr_t address) {
 	uint32_t *page_entry = get_page_entry(address);
-	if (page_entry != NULL)
+	if (page_entry != NULL) {
+		if (current->page_directory[dir_index(address)] & 0x200)
+			copy_page_table(get_page_table(address));
 		*page_entry &= ~1;
+	}
 	vm_page_inval(address);
 }
 
-/* 
+/*
  * Map the specified page frame to the virtual address and return the virtal address.
  * Be carefull though, it doesn't care whether or not the address is already taken.
  */
 uintptr_t map_page(uintptr_t page_frame, uintptr_t virtual_address, int flags) {
 	uint32_t *page_entry;
-	if (get_page_entry(virtual_address) == NULL) {
+	if (get_page_entry(virtual_address) == NULL)
 		add_page_table(virtual_address, flags);
-	}
+
+	if (current->page_directory[dir_index(virtual_address)] & 0x200)
+		copy_page_table(get_page_table(virtual_address));
 
 	page_entry = get_page_entry(virtual_address);
 	*page_entry = (page_frame & 0xFFFFF000) | flags | 1;
+	vm_page_inval(virtual_address);
 	return virtual_address;
 }
 
-/* 
+/*
  * Create a new address space for a newly forked process.
  */
 uint32_t *fork_mem(uint32_t *orig_page_dir) {
@@ -125,25 +135,35 @@ uint32_t *fork_mem(uint32_t *orig_page_dir) {
 		panic("Out of kernel memory.");
 
 	memcpy(new_dir, orig_page_dir, PAGE_SIZE);
-	
+
 	for (unsigned int i = 0; i < dir_index(KERNEL_MEMORY); i++) {
 		new_dir[i] &= ~2;
-		new_dir[i] |= 0x400; /* Use bit 10 the indicate CoW for page 
+		new_dir[i] |= 0x200;
+		new_dir[i] |= 0x400; /* Use bit 10 the indicate CoW for page
 														dir entries to the page fault handler. */
 		orig_page_dir[i] &= ~2;
+		orig_page_dir[i] |= 0x200;
 		orig_page_dir[i] |= 0x400;
 	}
-	new_dir[1023] &= ~2; /* The kernelspace shouldn't be CoW, except for the page tables. */
-	new_dir[1023] |= 0x400;
-	orig_page_dir[1023] &= ~2;
-	orig_page_dir[1023] |= 0x400;
+	new_dir[1023] = page_frame((uint32_t)new_dir) | PG_USER | PG_RW | 1;
 
-	inc_phys_refs(0, (uintptr_t)0 - PAGE_SIZE);
+	inc_phys_refs(0, KERNEL_MEMORY);
+	inc_phys_refs(get_page_table(0), get_page_table(KERNEL_MEMORY));
 
 	return new_dir;
 }
-/* 
- * Return the page table entry used for a certain virtual address. 
+
+void free_mem_usr() {
+	unsigned int i;
+	for (i = 0; i < KERNEL_MEMORY; i += PAGE_SIZE)
+		free_page(i);
+	for (i = get_page_table(0); i < get_page_table(KERNEL_MEMORY);
+			i += PAGE_SIZE)
+		free_page(i);
+}
+
+/*
+ * Return the page table entry used for a certain virtual address.
  */
 uint32_t *get_page_entry(uintptr_t virtual_address) {
 	uint32_t page_dir_entry = current->page_directory[dir_index(virtual_address)];
@@ -154,16 +174,20 @@ uint32_t *get_page_entry(uintptr_t virtual_address) {
 	return &page_table[page_index];
 }
 
-/* 
+/*
  * Allocate a page table and add it to the page directory.
  * The parameter 'virtual_address' is an address of which the page entry
  * is held in the new page table.
  */
-uintptr_t add_page_table(uintptr_t virtual_address, uint32_t flags) {
-	uintptr_t page_frame = alloc_page_frame();
+uintptr_t add_page_table(uintptr_t virt_addr, uint32_t flags) {
+	uintptr_t page_frame, pt;
+	page_frame = alloc_page_frame();
 	uint32_t *page_dir = current->page_directory;
-	page_dir[dir_index(virtual_address)] = (uint32_t) page_frame | flags | 1;
-	return get_page_table(virtual_address);
+	page_dir[dir_index(virt_addr)] = (uint32_t) page_frame | flags | 1;
+	pt = get_page_table(virt_addr);
+	for (int i = 0; i < 1024; i++)
+		((uint32_t *)pt)[i] = 0;
+	return pt;
 }
 
 unsigned int dir_index(uintptr_t virtual_address) {
@@ -175,7 +199,7 @@ unsigned int page_table_index(uintptr_t virtual_address) {
 }
 
 /*
- * Walk the page directory and page tables in order to find a 
+ * Walk the page directory and page tables in order to find a
  * free virtual address and return the address.
  */
 uintptr_t get_free_address(uintptr_t target) {
@@ -188,7 +212,7 @@ uintptr_t get_free_address(uintptr_t target) {
 		page_dir_entry = current->page_directory[pd_index];
 		if (!(page_dir_entry & 1)) {       /* If the page table isn't present, the */
 			add_page_table(pd_index << 22, 3);  /* first page will always be present */
-			return pd_index << 22; 
+			return pd_index << 22;
 		}
 
 		uint32_t *page_table = (uint32_t *)get_page_table(pd_index << 22);
@@ -240,7 +264,10 @@ void pf_non_present(uint32_t addr) {
 	if (addr >= current->heap_start && addr < current->heap_end) {
 		alloc_page(addr, PG_USER | PG_RW);
 	} else {
-		panic("*** PAGE FAULT ***\nTrying to reference non existing page.");
+		panic("*** PAGE FAULT ***\nTried to reference non existing "
+				"page: %x, PID: %x. PD: %x, PT: %x, PG_DIR: %x.", addr, current->pid,
+				current->page_directory[dir_index(addr)], *get_page_entry(addr),
+				current->page_directory);
 	}
 }
 
@@ -260,17 +287,18 @@ void pf_ro_violation(uint32_t addr) {
 
 	if (current->page_directory[dir_index(addr)] & 0x400) { /* CoW is enabled for
                                                       this page table entry. */
+		copy_page_table((uintptr_t)page_table);
 		enable_CoW(page_table);
 		current->page_directory[dir_index(addr)] |= 2;
 		current->page_directory[dir_index(addr)] &= ~0x400;
-	} 
+	}
 
 	tmp = enter_page(page_frame(addr), KERNEL_MEMORY, PG_KERN | PG_RW);
 	if (tmp == NULL)
-		panic("Not enough memory.");
+		panic("Not enough address space.");
 	new_pf = alloc_page_frame();
 	map_page(new_pf, addr, PG_USER | PG_RW);
-	memcpy((void *)(addr / PAGE_SIZE * PAGE_SIZE), (void *)tmp, PAGE_SIZE);
+	memcpy((void *)(addr & 0xfffff000), (void *)tmp, PAGE_SIZE);
 	free_page(tmp);
 }
 
@@ -288,4 +316,16 @@ void page_fault(Registers regs, uint32_t err) {
 	} else {
 		panic("*** PAGE FAULT ***\nCR2: %x, error code: %x", cr2, err);
 	}
+}
+
+void copy_page_table(uintptr_t table) {
+	uintptr_t tmp, new_pf;
+
+	tmp = enter_page(page_frame(table), KERNEL_MEMORY, PG_USER | PG_RW);
+	if (tmp == NULL)
+		panic("Not enough address space.");
+	new_pf = alloc_page_frame();
+	map_page(new_pf, table, PG_USER | PG_RW);
+	memcpy((void *)(table & 0xfffff000), (void *)tmp, PAGE_SIZE);
+	free_page(tmp);
 }

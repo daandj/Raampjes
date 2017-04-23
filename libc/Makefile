@@ -11,6 +11,9 @@ FILES =	string/memcpy \
 				unistd/fork \
 				unistd/read \
 				unistd/write \
+				unistd/_exit \
+				unistd/pause \
+				sys/wait/wait \
 
 LIBC_OBJS = $(addsuffix .libc.o,$(addprefix build/,$(FILES)))
 LIBK_OBJS = $(addsuffix .libk.o,$(addprefix build/,$(FILES)))

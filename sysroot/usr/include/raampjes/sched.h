@@ -4,8 +4,11 @@
 #include <sys/types.h>
 
 #define MAX_TASKS 128
+#define TASK_RUNNING 1
+#define TASK_STOPPED 2
+#define TASK_WAITING 3
 
-#define switch_to_userspace() \
+#define switch_to_userspace(x) \
 	asm volatile (".intel_syntax noprefix;" \
 			"mov esp, eax;" \
 			"pop gs;" \
@@ -16,7 +19,7 @@
 			"add esp, 4;" \
 			"iret;" \
 			".att_syntax prefix" \
-			:: "a" ((uint32_t)current->esp))
+			:: "a" ((uint32_t)x))
 
 struct TSS {
 	uint32_t prev_tss;
@@ -47,11 +50,9 @@ struct TSS {
 } __attribute__((__packed__));
 
 typedef struct stack_frame {
-	// /* The extra segment registers are currently not saved.
 	uint32_t gs;
 	uint32_t fs;
 	uint32_t es;
-	// */
 	uint32_t ds;
 	uint32_t eax;
 	uint32_t ecx;
@@ -76,7 +77,7 @@ typedef struct task_struct {
 	uint32_t *page_directory;
 	/* Everything above this must stay in the current order! */
 	uint32_t esp0;
-	pid_t pid;
+	pid_t pid, parent;
 	int state;
 	int exit_status;
 	uint32_t code_start, code_end, data_start, data_end;
@@ -89,5 +90,6 @@ extern TaskStruct *current;
 
 void init_sched();
 void sched();
+void set_stack_frame();
 
 #endif

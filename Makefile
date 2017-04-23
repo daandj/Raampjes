@@ -5,7 +5,7 @@ OBJS_A = $(subst kernel/,images/,$(subst .asm,.o,$(KERNEL_A)))
 
 CC = i686-raampjes-gcc
 AS = nasm
-CFLAGS = -std=gnu99 -ffreestanding -o2 -Wall -Wextra
+CFLAGS = -std=gnu99 -ffreestanding -o2 -Wall -Wextra -g
 
 .PHONY: all clean test libc libk install-headers
 
@@ -41,6 +41,8 @@ images/initrd.tar: initrd/initrd.tar
 
 images/kernel.elf: $(OBJS_C) $(OBJS_A) libc
 	$(CC) -T kernel/linker.ld -o $@ $(OBJS_C) $(OBJS_A) -lgcc -lk -nostdlib
+	i686-raampjes-objcopy --only-keep-debug $@ images/kernel.sym
+	i686-raampjes-objcopy --strip-debug $@
 
 #images/floppy.img: images/first_stage.img 
 #	cp images/empty_floppy.img images/floppy.img
@@ -65,6 +67,7 @@ test: images/floppy.img
 
 clean:
 	-$(MAKE) -C initrd clean
+	-$(MAKE) -C libc clean
 	-rm images/first_stage.img
 	-rm images/stage2.bin
 	-rm images/floppy.img

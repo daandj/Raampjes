@@ -6,6 +6,7 @@
 #include <raampjes/panic.h>
 #include <raampjes/sched.h>
 #include <raampjes/elf.h>
+#include <raampjes/gdt.h>
 
 static char rd_path[] = "/boot/initrd.tar";
 
@@ -32,9 +33,12 @@ int do_execve(const char *path, char *const argv[], char *const envp[]) {
 
 	unsigned int file_size = getsize(file_header->size);
 
+	free_mem_usr();
+
 	uintptr_t page_frame = alloc_page_frame();
-	uintptr_t stack = map_page(page_frame, KERNEL_MEMORY - PAGE_SIZE, 
+	uintptr_t stack = map_page(page_frame, KERNEL_MEMORY - PAGE_SIZE,
 			PG_USER | PG_RW);
+
 
 	StackFrame *stack_frame = (StackFrame *)(current->esp0 - sizeof(StackFrame));
 
@@ -45,6 +49,13 @@ int do_execve(const char *path, char *const argv[], char *const envp[]) {
 	current->esp = (uintptr_t)stack_frame;
 	stack_frame->orig_esp = stack + PAGE_SIZE;
 
+	stack_frame->gs = stack_frame->fs = stack_frame->es =
+		stack_frame->ds = stack_frame->ss = SEG_USER_DATA;
+
+	stack_frame->cs = SEG_USER_CODE;
+	stack_frame->eflags = 0x202;
+
+	switch_to_userspace(stack_frame);
 	return 0;
 }
 

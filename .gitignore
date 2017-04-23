@@ -1,6 +1,7 @@
 parport.out
 bochsout.txt
 debugger.out
+.gdbinit
 .DS_Store
 dump/
 *.o

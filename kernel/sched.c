@@ -31,7 +31,6 @@
 			insert_process(x); \
 			switch_task(current, x); \
 		} \
-		enable_interrupts(); \
 	} while(0)
 
 union task_union {
@@ -44,6 +43,8 @@ int remove_process(TaskStruct *process);
 TaskStruct *next_process();
 void switch_tss(TaskStruct *next);
 int find_empty_task();
+void wake_up(TaskStruct *p);
+int free_task();
 
 extern uint32_t PageDirectory[];
 extern struct GDT_entry GDT[];
@@ -64,7 +65,7 @@ void init_sched() {
 	main_tss.iopb_offset = sizeof(struct TSS);
 
 	install_tss(&main_tss);
-	
+
 	ltr(MAIN_TSS_DESC);
 	set_interrupt_callback(32, sched);
 }
@@ -76,7 +77,7 @@ void sched() {
 }
 
 pid_t do_fork() {
-	TaskStruct *new_task = (TaskStruct *)alloc_page(KERNEL_MEMORY, 
+	TaskStruct *new_task = (TaskStruct *)alloc_page(KERNEL_MEMORY,
                                                   PG_KERN | PG_RW);
 	if (new_task < KERNEL_MEMORY)
 		panic("Out of kernel memory.");
@@ -84,7 +85,6 @@ pid_t do_fork() {
 	memcpy(new_task, current, PAGE_SIZE);
 	new_task->esp0 = (uintptr_t)new_task + PAGE_SIZE;
 	new_task->page_directory = fork_mem(current->page_directory);
-	// new_task->page_directory = current->page_directory;
 	int new_pid = find_empty_task();
 	if (new_pid == 0)
 		panic("Maximum amount of tasks reached.");
@@ -92,24 +92,71 @@ pid_t do_fork() {
 	tasks[new_pid] = new_task;
 
 	wake_up_new(new_task);
-	if (current->pid == new_task->pid)
+	if (current->pid == new_task->pid) {
 		return 0;
-	else
+	} else {
 		return new_task->pid;
+	}
+}
+
+int do_pause() {
+	current->state = TASK_WAITING;
+	remove_process(current);
+	sched();
+	return -1;
+}
+
+void wake_up(TaskStruct *p) {
+	if (p->state == TASK_RUNNING)
+		panic("Trying to wake a running task");
+
+	p->state = TASK_RUNNING;
+	insert_process(p);
+	return;
+}
+
+void do_exit(int status) {
+	current->exit_status = status;
+	current->state = TASK_STOPPED;
+	
+	free_mem_usr();
+
+	if (tasks[current->parent]->state == TASK_WAITING)
+		wake_up(tasks[current->parent]);
+
+	remove_process(current);
+
+	sched();
+}
+
+pid_t do_wait(int *stat_loc) {
+	int i;
+	pid_t child_found = 0;
+	while (1) {
+		for (i = 0; i < MAX_TASKS; i++) {
+			if (tasks[i]->parent == current->pid &&
+					tasks[i]->state == TASK_STOPPED) {
+				if (stat_loc)
+					*stat_loc = tasks[i]->exit_status;
+				child_found = tasks[i]->pid;
+				free_task(tasks[i]);
+			}
+		}
+		if (child_found)
+			return child_found;
+		else
+			do_pause();
+	}
 }
 
 void prepare_init_task() {
 	INIT_TASK->pid = 0;
+	INIT_TASK->state = TASK_RUNNING;
 	INIT_TASK->esp0 = (uintptr_t)INIT_TASK + PAGE_SIZE;
 	INIT_TASK->page_directory = PageDirectory;
 
 	INIT_TASK->next_process = INIT_TASK;
 	INIT_TASK->prev_process = INIT_TASK;
-
-	StackFrame *stack = (void *)(INIT_TASK->esp0 - sizeof(StackFrame));
-	stack->gs = stack->fs = stack->es = stack->ds = stack->ss = SEG_USER_DATA;
-	stack->cs = SEG_USER_CODE;
-	stack->eflags = 0x202;
 }
 
 int insert_process(TaskStruct *process) {
@@ -123,7 +170,7 @@ int insert_process(TaskStruct *process) {
 int remove_process(TaskStruct *process) {
 	process->prev_process->next_process = process->next_process;
 	process->next_process->prev_process = process->prev_process;
-	process->next_process = process->prev_process = NULL;
+	process->prev_process = NULL;
 	return 0;
 }
 
@@ -139,5 +186,11 @@ int find_empty_task() {
 	for (int i = 0; i < MAX_TASKS; i++)
 		if (tasks[i] == NULL)
 			return i;
+	return 0;
+}
+
+int free_task(TaskStruct *p) {
+	free_page((uintptr_t)p->page_directory);
+	free_page((uintptr_t)p);
 	return 0;
 }
