@@ -3,6 +3,7 @@ extern main_intr_handler
 %macro handler 2
 global intr%1
 intr%1:
+	cli
 	%if %2 != 1
 		push dword 0
 	%endif
@@ -13,6 +14,7 @@ intr%1:
 	add esp, 4
 	popa
 	add esp, 4
+	sti
 	iret 
 %endmacro
 
@@ -57,6 +59,7 @@ extern sys_table
 
 global syscall_handler
 syscall_handler:
+	cli
 	push ebp
 	push edi
 	push esi
@@ -71,4 +74,5 @@ syscall_handler:
 	pop esi
 	pop edi
 	pop ebp
+	sti
 	iret

@@ -93,10 +93,10 @@ int install_intr_handler(int intr_line, intr_handler handler, int flags) {
 void main_intr_handler(uint32_t interrupt_number, 
                        Registers regs, 
 											 uint32_t error_code) {
+	if (interrupt_number >= 32 && interrupt_number < 48)
+		send_PIC_EOI(interrupt_number - 32);
 	if (callbacks[interrupt_number]) {
 		callbacks[interrupt_number](regs, error_code);
-		if (interrupt_number >= 32 && interrupt_number < 48)
-			send_PIC_EOI(interrupt_number - 32);
 		return;
 	}
 		

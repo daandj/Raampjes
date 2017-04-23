@@ -9,7 +9,6 @@ switch_task:
 	push edi
 	push esi
 	push ebx
-	cli
 	mov esi, [ebp + 8]
 	mov edi, [ebp + 12]
 
@@ -33,7 +32,6 @@ switch_task:
 	push dword [edi + 4]
 	ret
 .1:
-	sti
 	pop ebx
 	pop esi
 	pop edi
