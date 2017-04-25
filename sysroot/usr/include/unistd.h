@@ -9,6 +9,7 @@
 #define _SYSI__exit           4
 #define _SYSI_wait            5
 #define _SYSI_pause           6
+#define _SYSI_sbrk            7
 
 #define _SYSCALL0(type, name) \
 	type name() { \
@@ -41,6 +42,7 @@
 
 #include <sys/types.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +56,7 @@ ssize_t write(int fildes, const void *buf, size_t nbytes);
 ssize_t read(int fildes, void *buf, size_t nbytes);
 void _exit(int status);
 int pause();
+void *sbrk(intptr_t incr);
 
 #ifdef __cplusplus
 }

@@ -43,8 +43,9 @@ int do_execve(const char *path, char *const argv[], char *const envp[]) {
 	StackFrame *stack_frame = (StackFrame *)(current->esp0 - sizeof(StackFrame));
 
 	load_file((char *)file_header + 512, file_size, stack_frame);
-	current->heap_start = ((current->data_end >> 12) + 1) << 12;
-	current->heap_end = current->heap_start;
+	current->brk = current->data_end;
+	current->stack_start = stack;
+	current->stack_end = stack + PAGE_SIZE;
 
 	current->esp = (uintptr_t)stack_frame;
 	stack_frame->orig_esp = stack + PAGE_SIZE;
@@ -97,7 +98,6 @@ void load_file(char *file, unsigned int file_size, StackFrame *stack_frame) {
 
 void load_bin(char *file, unsigned int file_size, StackFrame *stack_frame) {
 	alloc_pages(0, file_size, PG_USER | PG_RW);
-	current->data_start = 0;
 	current->data_end = file_size;
 
 	memcpy((char *)0, file, file_size);

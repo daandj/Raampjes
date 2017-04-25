@@ -7,12 +7,15 @@ FILES =	string/memcpy \
 				string/strlen \
 				string/strncmp \
 				stdlib/exit \
+				stdlib/malloc \
+				stdlib/free \
 				unistd/execve \
 				unistd/fork \
 				unistd/read \
 				unistd/write \
 				unistd/_exit \
 				unistd/pause \
+				unistd/sbrk \
 				sys/wait/wait \
 
 LIBC_OBJS = $(addsuffix .libc.o,$(addprefix build/,$(FILES)))

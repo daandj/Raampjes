@@ -116,6 +116,8 @@ void wake_up(TaskStruct *p) {
 }
 
 void do_exit(int status) {
+	if (current->pid == 0)
+		panic("*** PANIC ***\nInit trying to exit.");
 	current->exit_status = status;
 	current->state = TASK_STOPPED;
 	
@@ -147,6 +149,16 @@ pid_t do_wait(int *stat_loc) {
 		else
 			do_pause();
 	}
+}
+
+void *do_sbrk(intptr_t incr) {
+	uintptr_t prev_brk = current->brk;
+	if (prev_brk + incr > current->code_end 
+			&& prev_brk + incr < current->stack_start) {
+		current->brk += incr;
+		return (void *)prev_brk;
+	}
+	return (void *)-1;
 }
 
 void prepare_init_task() {

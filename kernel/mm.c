@@ -63,7 +63,7 @@ uintptr_t alloc_page(uintptr_t target, int flags) {
 uintptr_t alloc_pages(uintptr_t begin_addr, uintptr_t end_addr, int flags) {
 	unsigned int first_page, last_page;
 	first_page = begin_addr / PAGE_SIZE;
-	last_page = (end_addr - 1) / PAGE_SIZE + 1;
+	last_page = end_addr / PAGE_SIZE;
 	for (unsigned int i = first_page; i <= last_page; i++) {
 		if (page_present(i * PAGE_SIZE)) {
 			continue;
@@ -72,7 +72,7 @@ uintptr_t alloc_pages(uintptr_t begin_addr, uintptr_t end_addr, int flags) {
 		map_page(page_frame, i * PAGE_SIZE, flags);
 	}
 
-	return begin_addr / PAGE_SIZE * PAGE_SIZE;
+	return begin_addr & 0xFFFFF000;
 }
 
 /*
@@ -183,7 +183,7 @@ uintptr_t add_page_table(uintptr_t virt_addr, uint32_t flags) {
 	uintptr_t page_frame, pt;
 	page_frame = alloc_page_frame();
 	uint32_t *page_dir = current->page_directory;
-	page_dir[dir_index(virt_addr)] = (uint32_t) page_frame | flags | 1;
+	page_dir[dir_index(virt_addr)] = (uint32_t) page_frame | flags | 3;
 	pt = get_page_table(virt_addr);
 	for (int i = 0; i < 1024; i++)
 		((uint32_t *)pt)[i] = 0;
@@ -261,7 +261,8 @@ bool CoW_enabled(uintptr_t addr) {
 }
 
 void pf_non_present(uint32_t addr) {
-	if (addr >= current->heap_start && addr < current->heap_end) {
+	kprintf("Addr: %x, code_end: %x, brk: %x.\n", addr, current->code_end, current->brk);
+	if (addr > current->code_end && addr <= current->brk) {
 		alloc_page(addr, PG_USER | PG_RW);
 	} else {
 		panic("*** PAGE FAULT ***\nTried to reference non existing "
@@ -278,8 +279,10 @@ void pf_rsvd() {
 void pf_ro_violation(uint32_t addr) {
 	uint32_t *page_table = (uint32_t *)get_page_table(addr);
 	uintptr_t tmp, new_pf;
+	kprintf("Addr: %x, code_end: %x, brk: %x.\n", addr, current->code_end, current->brk);
+	kprintf("Page entry: %x.\n", *get_page_entry(addr));
 
-	if (addr >= current->code_start && addr <= current->code_end)
+	if (addr <= current->code_end)
 		panic("*** PAGE FAULT ***\nWrote to code segment.");
 
 	if (!CoW_enabled(addr))

@@ -80,8 +80,7 @@ typedef struct task_struct {
 	pid_t pid, parent;
 	int state;
 	int exit_status;
-	uint32_t code_start, code_end, data_start, data_end;
-	uint32_t heap_start, heap_end, stack_start, stack_end;
+	uint32_t code_end, data_end, brk, stack_start, stack_end;
 	struct task_struct *next_process;
 	struct task_struct *prev_process;
 } TaskStruct;
