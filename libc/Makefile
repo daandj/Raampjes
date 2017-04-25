@@ -11,6 +11,8 @@ FILES =	string/memcpy \
 				stdlib/exit \
 				stdlib/malloc \
 				stdlib/free \
+				stdio/_iob \
+				stdio/_fillbuf \
 				unistd/execve \
 				unistd/fork \
 				unistd/read \
