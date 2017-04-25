@@ -10,9 +10,9 @@ extern "C" {
 void abort(void);
 int atexit(void (*)(void));
 int atoi(const char*);
-void free(void*);
+void free(void *ptr);
 char* getenv(const char*);
-void* malloc(size_t);
+void* malloc(size_t size);
 void exit(int status);
 
 #ifdef __cplusplus

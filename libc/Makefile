@@ -6,6 +6,8 @@ FILES =	string/memcpy \
 				string/memset \
 				string/strlen \
 				string/strncmp \
+				string/strtok \
+				string/strchr \
 				stdlib/exit \
 				stdlib/malloc \
 				stdlib/free \
