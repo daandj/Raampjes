@@ -9,8 +9,8 @@
 #define BUFSIZ   1024
 #define OPEN_MAX 10
 
-typedef struct _iobuf { 
-	int cnt; 
+typedef struct _iobuf {
+	int cnt;
 	char *ptr;
 	char *base;
 	int flag;
@@ -27,7 +27,7 @@ extern FILE _iob[OPEN_MAX];
 extern "C" {
 #endif
 
-#define getc(x)     (--(x)->cnt >= 0 \
+#define getc(x)     (--(x)->cnt > 0 \
 		? (unsigned char) *(x)->ptr++ : _fillbuf(x))
 #define getchar()   getc(stdin)
 #define putchar(x)  putc((x), stdout)

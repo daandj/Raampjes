@@ -11,7 +11,7 @@
 #include <raampjes/panic.h>
 
 char *const envp[] = { (char *)0 };
-char *cmd[] = { "test", (char *)0 };
+char *cmd[] = { "init", (char *)0 };
 
 int kmain(uint32_t magic, uintptr_t addr) {
 	struct multiboot_tag *tag;
@@ -41,7 +41,7 @@ int kmain(uint32_t magic, uintptr_t addr) {
 	}
 
 	init_sched();
-	execve("bin/test", cmd, envp);
+	execve("bin/init", cmd, envp);
 	while (1) ;
 	return 0;
 }

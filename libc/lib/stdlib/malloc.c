@@ -14,11 +14,11 @@ typedef union header {
 	uint64_t align;
 } Header;
 
-static Header *free_p = NULL;
+Header *free_p = NULL;
 static Header base;
 
-Header *split_block(Header *p, unsigned size);
-Header *alloc_free(unsigned size);
+static Header *split_block(Header *p, unsigned size);
+static Header *alloc_free(unsigned size);
 
 void *malloc(size_t size) {
 	Header *p, *prev;
@@ -26,10 +26,10 @@ void *malloc(size_t size) {
 
 	if (size == 0)
 		return NULL;
-	
+
 	block_size = (size - 1) / sizeof(Header) + 2;
 	if ((prev = free_p) == NULL) {
-		base.s.next = free_p = prev = &base; 
+		base.s.next = free_p = prev = &base;
 		base.s.size = 0;
 	}
 
@@ -37,7 +37,7 @@ void *malloc(size_t size) {
 		if (p->s.size == block_size) {
 			prev->s.next = p->s.next;
 			break;
-		} else {
+		} else if (p->s.size > block_size) {
 			p = split_block(p, block_size);
 			break;
 		}
@@ -46,18 +46,18 @@ void *malloc(size_t size) {
 			if ((p = alloc_free(size)) == NULL)
 				return NULL;
 	}
-
-	return (Header *)(p + 1);
+	free_p = prev;
+	return (void *)(p + 1);
 }
 
-Header *split_block(Header *p, unsigned size) {
+static Header *split_block(Header *p, unsigned size) {
 	p->s.size -= size;
-	p += size;
+	p += p->s.size;
 	p->s.size = size;
 	return p;
 }
 
-Header *alloc_free(unsigned size) {
+static Header *alloc_free(unsigned size) {
 	Header *p;
 
 	if (size < ALLOC_SIZE)

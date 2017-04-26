@@ -6,7 +6,7 @@
 typedef union header {
 	struct {
 		union header *next;
-		int size;
+		unsigned size;
 	} s;
 	uint64_t align;
 } Header;

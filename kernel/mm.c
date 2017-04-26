@@ -261,7 +261,6 @@ bool CoW_enabled(uintptr_t addr) {
 }
 
 void pf_non_present(uint32_t addr) {
-	kprintf("Addr: %x, code_end: %x, brk: %x.\n", addr, current->code_end, current->brk);
 	if (addr > current->code_end && addr <= current->brk) {
 		alloc_page(addr, PG_USER | PG_RW);
 	} else {
@@ -279,8 +278,6 @@ void pf_rsvd() {
 void pf_ro_violation(uint32_t addr) {
 	uint32_t *page_table = (uint32_t *)get_page_table(addr);
 	uintptr_t tmp, new_pf;
-	kprintf("Addr: %x, code_end: %x, brk: %x.\n", addr, current->code_end, current->brk);
-	kprintf("Page entry: %x.\n", *get_page_entry(addr));
 
 	if (addr <= current->code_end)
 		panic("*** PAGE FAULT ***\nWrote to code segment.");

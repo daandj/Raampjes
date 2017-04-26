@@ -2,8 +2,9 @@
 #define _SCHED_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
-#define MAX_TASKS 128
+#define MAX_TASKS    64
 #define TASK_RUNNING 1
 #define TASK_STOPPED 2
 #define TASK_WAITING 3
@@ -77,12 +78,10 @@ typedef struct task_struct {
 	uint32_t *page_directory;
 	/* Everything above this must stay in the current order! */
 	uint32_t esp0;
-	pid_t pid, parent;
+	pid_t pid, ppid;
 	int state;
 	int exit_status;
 	uint32_t code_end, data_end, brk, stack_start, stack_end;
-	struct task_struct *next_process;
-	struct task_struct *prev_process;
 } TaskStruct;
 
 extern TaskStruct *current;
@@ -90,5 +89,8 @@ extern TaskStruct *current;
 void init_sched();
 void sched();
 void set_stack_frame();
+int do_pause();
+void wake_up(TaskStruct *p);
+void wake_up_all();
 
 #endif

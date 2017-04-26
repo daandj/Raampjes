@@ -31,7 +31,6 @@ inline void ltr(uint16_t task_desc) {
 }
 
 void kernel_halt() {
-	disable_interrupts();
 	asm ("hlt");
 }
 

@@ -29,7 +29,7 @@ void init_rd(struct multiboot_tag_module *tag) {
 int do_execve(const char *path, char *const argv[], char *const envp[]) {
 	TarHeader *file_header;
 	if (NULL == (file_header = find_file(path)))
-		panic("\n*** PANIC ***\nFile: %s not found.", path);
+		return -1;
 
 	unsigned int file_size = getsize(file_header->size);
 

@@ -20,6 +20,7 @@ FILES =	string/memcpy \
 				unistd/_exit \
 				unistd/pause \
 				unistd/sbrk \
+				unistd/ps \
 				sys/wait/wait \
 
 LIBC_OBJS = $(addsuffix .libc.o,$(addprefix build/,$(FILES)))

@@ -11,6 +11,7 @@ extern int do_exit();
 extern int do_wait();
 extern int do_pause();
 extern int do_sbrk();
+extern int do_ps();
 
 fn_ptr sys_table[] = { do_fork, do_write, do_read, do_execve, 
-	do_exit, do_wait, do_pause, do_sbrk, };
+	do_exit, do_wait, do_pause, do_sbrk, do_ps, };

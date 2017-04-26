@@ -4,6 +4,7 @@
 #include <raampjes/cpu.h>
 #include <raampjes/panic.h>
 #include <raampjes/interrupts.h>
+#include <raampjes/vga.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
@@ -28,7 +29,6 @@
 		if (x != current) { \
 			x->esp = (esp - (uintptr_t)current) + (uintptr_t)x; \
 			x->ebp = (ebp - (uintptr_t)current) + (uintptr_t)x; \
-			insert_process(x); \
 			switch_task(current, x); \
 		} \
 	} while(0)
@@ -38,12 +38,9 @@ union task_union {
 	char stack[PAGE_SIZE];
 };
 
-int insert_process(TaskStruct *process);
-int remove_process(TaskStruct *process);
 TaskStruct *next_process();
 void switch_tss(TaskStruct *next);
 int find_empty_task();
-void wake_up(TaskStruct *p);
 int free_task();
 
 extern uint32_t PageDirectory[];
@@ -53,6 +50,8 @@ extern void switch_task(TaskStruct *prev, TaskStruct *next);
 struct TSS main_tss;
 static union task_union init_union;
 TaskStruct *tasks[MAX_TASKS] = {&(init_union.task), };
+TaskStruct *queue[MAX_TASKS];
+int head = 0, tail = 0;
 TaskStruct *current = &(init_union.task);
 
 void prepare_init_task();
@@ -71,7 +70,7 @@ void init_sched() {
 }
 
 void sched() {
-	TaskStruct *next = current->next_process;
+	TaskStruct *next = next_process();
 
 	switch_task(current, next);
 }
@@ -89,6 +88,7 @@ pid_t do_fork() {
 	if (new_pid == 0)
 		panic("Maximum amount of tasks reached.");
 	new_task->pid = new_pid;
+	new_task->ppid = current->pid;
 	tasks[new_pid] = new_task;
 
 	wake_up_new(new_task);
@@ -101,7 +101,6 @@ pid_t do_fork() {
 
 int do_pause() {
 	current->state = TASK_WAITING;
-	remove_process(current);
 	sched();
 	return -1;
 }
@@ -111,22 +110,30 @@ void wake_up(TaskStruct *p) {
 		panic("Trying to wake a running task");
 
 	p->state = TASK_RUNNING;
-	insert_process(p);
 	return;
+}
+
+void wake_up_all() {
+	int i;
+
+	for (i = 0; i < MAX_TASKS; i++)
+		if (tasks[i] != NULL && tasks[i]->state == TASK_WAITING)
+			wake_up(tasks[i]);
 }
 
 void do_exit(int status) {
 	if (current->pid == 0)
 		panic("*** PANIC ***\nInit trying to exit.");
+	if (current->pid == 1)
+		panic("*** PANIC ***\nIdle task trying to exit.");
 	current->exit_status = status;
 	current->state = TASK_STOPPED;
-	
+
 	free_mem_usr();
 
-	if (tasks[current->parent]->state == TASK_WAITING)
-		wake_up(tasks[current->parent]);
-
-	remove_process(current);
+	if (tasks[current->ppid]->state == TASK_WAITING) {
+		wake_up(tasks[current->ppid]);
+	}
 
 	sched();
 }
@@ -136,7 +143,7 @@ pid_t do_wait(int *stat_loc) {
 	pid_t child_found = 0;
 	while (1) {
 		for (i = 0; i < MAX_TASKS; i++) {
-			if (tasks[i]->parent == current->pid &&
+			if (tasks[i]->ppid == current->pid &&
 					tasks[i]->state == TASK_STOPPED) {
 				if (stat_loc)
 					*stat_loc = tasks[i]->exit_status;
@@ -153,7 +160,7 @@ pid_t do_wait(int *stat_loc) {
 
 void *do_sbrk(intptr_t incr) {
 	uintptr_t prev_brk = current->brk;
-	if (prev_brk + incr > current->code_end 
+	if (prev_brk + incr > current->code_end
 			&& prev_brk + incr < current->stack_start) {
 		current->brk += incr;
 		return (void *)prev_brk;
@@ -166,28 +173,23 @@ void prepare_init_task() {
 	INIT_TASK->state = TASK_RUNNING;
 	INIT_TASK->esp0 = (uintptr_t)INIT_TASK + PAGE_SIZE;
 	INIT_TASK->page_directory = PageDirectory;
-
-	INIT_TASK->next_process = INIT_TASK;
-	INIT_TASK->prev_process = INIT_TASK;
-}
-
-int insert_process(TaskStruct *process) {
-	current->next_process->prev_process = process;
-	process->next_process = current->next_process;
-	current->next_process = process;
-	process->prev_process = current;
-	return 0;
-}
-
-int remove_process(TaskStruct *process) {
-	process->prev_process->next_process = process->next_process;
-	process->next_process->prev_process = process->prev_process;
-	process->prev_process = NULL;
-	return 0;
 }
 
 TaskStruct *next_process() {
-	return current->next_process;
+	int next, prev, i;
+	TaskStruct *t;
+	prev = current->pid + 1;
+	next = 1;
+
+	for (i = 0; i < MAX_TASKS; i++) {
+		t = tasks[(i + prev) % MAX_TASKS];
+		if (t && t->state == TASK_RUNNING) {
+			next = t->pid;
+			break;
+		}
+	}
+
+	return tasks[next];
 }
 
 void switch_tss(TaskStruct *next) {
@@ -202,7 +204,25 @@ int find_empty_task() {
 }
 
 int free_task(TaskStruct *p) {
+	tasks[p->pid] = NULL;
 	free_page((uintptr_t)p->page_directory);
 	free_page((uintptr_t)p);
 	return 0;
+}
+
+void pretty_print(TaskStruct *t) {
+	if (t == NULL)
+		kprintf(" PID PPID STATE ADDR\n");
+	else
+		kprintf("%d %d %d %x\n", t->pid, t->ppid, t->state, t);
+}
+
+void do_ps() {
+	int i;
+
+	pretty_print(NULL);
+
+	for (i = 0; i < MAX_TASKS; i++)
+		if (tasks[i])
+			pretty_print(tasks[i]);
 }

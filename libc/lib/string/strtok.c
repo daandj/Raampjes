@@ -10,7 +10,9 @@ char *strtok(char *s1, const char *s2) {
 		return NULL;
 
 	if (s1 != NULL) {
-		for (c = s1; *c; c++) {
+		for (c = s1; ; c++) {
+			if (!*c)
+				return NULL;
 			if (!strchr(s2, *c)) {
 				tok_next = c;
 				break;

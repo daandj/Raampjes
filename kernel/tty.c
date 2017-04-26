@@ -1,5 +1,6 @@
 #include <raampjes/tty.h>
 #include <raampjes/vga.h>
+#include <raampjes/sched.h>
 #include <stddef.h>
 #include <sys/types.h>
 
@@ -10,7 +11,7 @@ typedef int ssize_t;
 
 int buf_enqueue(struct tty_buffer *buf, char c);
 char buf_dequeue(struct tty_buffer *buf);
-void move_queue(struct tty_buffer *from, struct tty_buffer *to); 
+void move_queue(struct tty_buffer *from, struct tty_buffer *to);
 int buf_queue_length(struct tty_buffer *buf);
 
 struct tty_struct terminal = {
@@ -26,8 +27,10 @@ void tty_input(char c) {
 				vga_putchar(c);
 			break;
 		case '\n':
-			vga_putchar(c);
+			if (buf_enqueue(&terminal.line_buf, c))
+				vga_putchar(c);
 			move_queue(&terminal.line_buf, &terminal.input_buf);
+			wake_up_all();
 			break;
 		default:
 			if (buf_enqueue(&terminal.line_buf, c))
@@ -35,7 +38,7 @@ void tty_input(char c) {
 	}
 }
 
-ssize_t do_write(int fildes, const void *buf, size_t nbytes) { 
+ssize_t do_write(int fildes, const void *buf, size_t nbytes) {
 	unsigned int i;
 	char *buffer = (char *)buf;
 
@@ -63,13 +66,17 @@ ssize_t do_read(int fildes, void *buf, size_t nbytes) {
 	switch (fildes) {
 		case 0:
 			buf_len = buf_queue_length(&terminal.input_buf);
+			while (buf_len == 0) {
+				do_pause();
+				buf_len = buf_queue_length(&terminal.input_buf);
+			}
 			if (buf_len > nbytes)
 				for (i = 0; i < nbytes; i++)
 					buffer[i] = buf_dequeue(&terminal.input_buf);
 			else
 				for (i = 0; i < buf_len; i++)
 					buffer[i] = buf_dequeue(&terminal.input_buf);
-			return i + 1;
+			return i;
 		case 1:
 		case 2:
 			return 0;

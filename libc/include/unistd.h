@@ -10,6 +10,7 @@
 #define _SYSI_wait            5
 #define _SYSI_pause           6
 #define _SYSI_sbrk            7
+#define _SYSI_ps              8
 
 #define _SYSCALL0(type, name) \
 	type name() { \
@@ -57,6 +58,7 @@ ssize_t read(int fildes, void *buf, size_t nbytes);
 void _exit(int status);
 int pause();
 void *sbrk(intptr_t incr);
+void ps();
 
 #ifdef __cplusplus
 }
