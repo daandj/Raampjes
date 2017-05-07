@@ -3,13 +3,16 @@
 #include <raampjes/vga.h>
 #include <raampjes/stdlib.h>
 #include <raampjes/cpu.h>
+#include <string.h>
+
 #define VGA_WIDTH 80
 #define VGA_HEIGTH 25
+#define VGA_ENTRY_SIZE 2
 
-uint16_t vga_entry(char);
+static uint16_t vga_entry(char);
 
-int VGA_x, VGA_y, cursor_x, cursor_y;
-uint16_t *vga_memory_address;
+static int VGA_x, VGA_y, cursor_x, cursor_y;
+static uint16_t *vga_memory_address;
 
 int init_vga() {
 	VGA_x = 0;
@@ -25,6 +28,13 @@ void clr_screen() {
 	for (int i = 0; i < VGA_WIDTH * VGA_HEIGTH; i++)
 		vga_memory_address[i] = vga_entry(' ');
 	move_cursor(0, 0);
+}
+
+void scroll_down() {
+	memcpy(vga_memory_address, vga_memory_address + VGA_WIDTH, 
+			VGA_WIDTH * VGA_HEIGTH * VGA_ENTRY_SIZE);
+	// for (int i = ((VGA_HEIGTH - 1) * VGA_WIDTH); i < VGA_WIDTH * VGA_HEIGTH; i++)
+		// vga_memory_address[i] = vga_entry(' ');
 }
 
 void putxy(int x, int y, char c) {
@@ -72,8 +82,8 @@ void vga_putchar(char c) {
 	}
 	if (VGA_y >= VGA_HEIGTH) {
 		VGA_x = 0;
-		VGA_y = 0;
-		clr_screen();
+		VGA_y--;
+		scroll_down();
 	}
 	move_cursor(VGA_x, VGA_y);
 }
