@@ -40,8 +40,10 @@ size_t fread(void*, size_t, size_t, FILE*);
 int fseek(FILE*, long, int);
 long ftell(FILE*);
 size_t fwrite(const void*, size_t, size_t, FILE*);
+int fputs(const char *s, FILE *stream);
 void setbuf(FILE*, char*);
 int vfprintf(FILE*, const char*, va_list);
+int puts(const char *s);
 
 #ifdef __cplusplus
 }

@@ -41,6 +41,7 @@ int kmain(uint32_t magic, uintptr_t addr) {
 	}
 
 	init_sched();
+	kprintf("\n                              Welcome to Raampjes!\n\n");
 	execve("bin/init", cmd, envp);
 	while (1) ;
 	return 0;

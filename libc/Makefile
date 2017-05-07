@@ -10,9 +10,12 @@ FILES =	string/memcpy \
 				string/strchr \
 				stdlib/exit \
 				stdlib/malloc \
+				stdlib/atoi \
 				stdlib/free \
 				stdio/_iob \
 				stdio/_fillbuf \
+				stdio/fputs \
+				stdio/puts \
 				unistd/execve \
 				unistd/fork \
 				unistd/read \

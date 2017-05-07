@@ -19,10 +19,13 @@ char **split_tokens(char *line);
 int exec_prog(const char *name, char *const *argv);
 
 char alloc_err[] = "sh: allocation error.\n";
+char welcome[] = "The system and shell are now up and running, to get started "
+                 "using Raampjes\nsimply type a command.\n\n";
 
 int main() {
 	int i, status;
 	char *line, **tokens;
+	write(1, welcome, sizeof(welcome) - sizeof(welcome[0]));
 
 	while (1) {
 		show_prompt();
