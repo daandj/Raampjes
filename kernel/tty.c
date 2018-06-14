@@ -11,6 +11,7 @@ typedef int ssize_t;
 
 int buf_enqueue(struct tty_buffer *buf, char c);
 char buf_dequeue(struct tty_buffer *buf);
+char buf_restore(struct tty_buffer *buf);
 void move_queue(struct tty_buffer *from, struct tty_buffer *to);
 int buf_queue_length(struct tty_buffer *buf);
 
@@ -23,7 +24,7 @@ struct tty_struct terminal = {
 void tty_input(char c) {
 	switch (c) {
 		case '\b':
-			if (buf_dequeue(&terminal.line_buf))
+			if (buf_restore(&terminal.line_buf))
 				vga_putchar(c);
 			break;
 		case '\n':
@@ -104,6 +105,15 @@ char buf_dequeue(struct tty_buffer *buf) {
 	buf->head = (current_head + 1) % BUF_SIZE;
 
 	return buf->buffer[current_head];
+}
+
+char buf_restore(struct tty_buffer *buf) {
+	if (EMPTY(buf))
+		return (char)0;
+
+	buf->tail = (buf->tail - 1) % BUF_SIZE;
+
+	return buf->buffer[buf->tail];
 }
 
 void move_queue(struct tty_buffer *from, struct tty_buffer *to) {
